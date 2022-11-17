@@ -5,10 +5,8 @@ from random import randint
 
 
 
-
-
 def setup():
-    size(980,720)
+    size(1200,600)
 
 
 
