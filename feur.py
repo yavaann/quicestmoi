@@ -11,8 +11,7 @@ image_perso_liste = []
 x=50
 y=-50
 compteur_id_perso = 1
-font = create_font("police/Aqum2.otf",34)
-text_font(font, 34)
+
 
 class image_personnage():
     def __init__(self,x,y,perso_id):
@@ -41,9 +40,10 @@ for i in range(1,6):
 
 def setup():
     size(1200,560)
+    font = create_font("police/Aqum2.otf",34)
+    text_font(font, 15)
+def draw():
     for image_perso in image_perso_liste:
         image_perso.afficher()
-def draw():
-    circle(20,20,20)
     
 run()
