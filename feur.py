@@ -19,6 +19,13 @@ compteur_id_perso = 1
 draw_perso = 0
 i=0
 
+
+b = Image.open("assets/background.png")
+b=b.convert("RGBA")
+
+b=b.resize((1200,560))
+b.save("assets/background1.png")
+
 def compile_image(liste_image):
     background_image = Image.open("background_image.png")
     background_image = background_image.convert("RGBA")
@@ -29,13 +36,13 @@ def compile_image(liste_image):
 
         imagelist[i] = imagelist[i].convert("RGBA")
         imagelist[i] = imagelist[i].resize((50,50))
-    y=0
+    y=10
     compteur_id_perso=0
     contour = Image.open("images/contour.png")
     for i in range(1,6):
         y+=100
         if i == 1:
-            y = 0
+            y = 10
         x=100
         for j in range(1,6):
             background_image.alpha_composite(imagelist[compteur_id_perso],dest=(x,y))
@@ -43,13 +50,13 @@ def compile_image(liste_image):
             compteur_id_perso+=1
             x +=100
     background_image2 = ImageDraw.Draw(background_image)
-    y=-50
+    y=-35
     compteur_id_perso=0
     for i in range(1,6):
         y+=100
         x=125
         for j in range(1,6):
-            background_image2.text((x,y),liste_image[compteur_id_perso].nom_perso,(255,255,255),font=font,anchor="ma")
+            background_image2.text((x,y),liste_image[compteur_id_perso].nom_perso,(0,0,0),font=font,anchor="ma")
             compteur_id_perso+=1
             x +=100
     background_image.save("yes.png")
@@ -57,7 +64,7 @@ def compile_image(liste_image):
 def compile_image_perso(perso_name,list_arg):
     perso = Image.open("images/perso_vierge.png")
     perso = perso.convert("RGBA")
-    if len(liste_image) == 0:
+    if len(list_arg) == 0:
         cheveux = randint(1,10)
         visage = randint(1,10)
         yeux = randint(1,10)
@@ -68,22 +75,30 @@ def compile_image_perso(perso_name,list_arg):
         barbe = randint(1,10)
         background = randint(1,10)
     else:
-        cheveux = Image.open("assets/cheveux/"+str(list_arg[0]))
-        visage = Image.open("assets/visage/"+str(list_arg[1]))
-        yeux = Image.open("assets/yeux/"+str(list_arg[2]))
-        nez = Image.open("assets/nez/"+str(list_arg[3]))
-        bouche = Image.open("assets/bouche/"+str(list_arg[4]))
-        cosmetique = Image.open("assets/cosmetique/"+str(list_arg[5]))
-        moustache = Image.open("assets/moustache/"+str(list_arg[6]))
-        barbe = Image.open("assets/barbe/"+str(list_arg[7]))
-        background = Image.open("assets/background/"+str(list_arg[8]))
+        cheveux = Image.open("assets/cheveux/cheveux"+str(list_arg[0])+".png")
+        visage = Image.open("assets/visage/visage"+str(list_arg[1])+".png")
+        yeux = Image.open("assets/yeux/yeux"+str(list_arg[2])+".png")
+        nez = Image.open("assets/nez/nez"+str(list_arg[3])+".png")
+        bouche = Image.open("assets/bouche/bouche"+str(list_arg[4])+".png")
+        cosmetique = Image.open("assets/cosmetique/cosmetique"+str(list_arg[5])+".png")
+        #moustache = Image.open("assets/moustache/moustache"+str(list_arg[6])+".png")
+        #barbe = Image.open("assets/barbe/barbe"+str(list_arg[7])+".png")
+        background = Image.open("assets/background/background"+str(list_arg[8])+".png")
+    perso.alpha_composite(background)
+    perso.alpha_composite(visage)
+    perso.alpha_composite(yeux)
+    perso.alpha_composite(nez)
+    perso.alpha_composite(bouche)
+    #perso.alpha_composite(moustache)
+    #perso.alpha_composite(barbe)
+    perso.alpha_composite(cheveux)
+    perso.alpha_composite(cosmetique)
+    perso.save("assets/perso_fin/"+str(perso_name)+".png")
 
 
 
 
-
-
-
+compile_image_perso("Roger",[1,1,1,1,1,1,1,1,1])
 
 
 class image_personnage():
@@ -126,8 +141,12 @@ class image_personnage():
                     clear()
         return 1
 
-
-
+class Bouton():
+    def __init__(self,x,y,taille,nom):
+        self.x = x
+        self.y = y
+        self.taille = taille
+        self.nom = nom
 
 for i in range(1,6):
     y+=100
@@ -147,44 +166,63 @@ def setup():
     title("Qui c'est moi ?")
 i = 0
 souris_dessus = False
-
+ecran = "jeu"
+e = False
 def draw():
-    global draw_perso,i,compteur_id_perso
-    if draw_perso ==0 and image_perso_liste[i].affiche == False:
-        draw_perso =1
-        background(0,0,0)
-        image(load_image("yes.png"),225,50)
-    if draw_perso == 1:
-        for image_perso in image_perso_liste:
-            i +=1
-            if image_perso.souris_dessus == True and i==24:
-                souris_dessus == True
-            else:
-                souris_dessus == False
-        for image_perso in image_perso_liste:
-            draw_perso = image_perso.clic()
-            if image_perso.choisi == True:
-                draw_perso =2
-                for image_perso in image_perso_liste:
-                    image_perso.affiche = False
-                    i = 0
-                    background(0,0,0)
-                break
-    if draw_perso == 2 and image_perso_liste[i].affiche == False:
-        for i in range(25):
-            image_perso_liste[i].x -=275
-            image_perso_liste[i].affiche = True
-            if image_perso_liste[i].choisi == True:
-                fill(30,30,30)
-                rect(550,0,5,650)
-                for ligne in range(120,650,40):
-                    rect(550,ligne,650,3)
-                image_perso_liste[i].x = 610
-                image_perso_liste[i].y =25
-                image_perso_liste[i].affiche = False
-                image_perso_liste[i].afficher()
+    global draw_perso,i,compteur_id_perso,ecran,e
+    if ecran == "jeu":
+        if draw_perso ==0 and image_perso_liste[i].affiche == False:
+            draw_perso =1
+            image(load_image("assets/background1.png"),0,0)
+            #background(0,0,0)
+            image(load_image("yes.png"),259,50)
+        if draw_perso == 1:
+            for image_perso in image_perso_liste:
+                i +=1
+                if image_perso.souris_dessus == True and i==24:
+                    souris_dessus == True
+                else:
+                    souris_dessus == False
+            for image_perso in image_perso_liste:
+                draw_perso = image_perso.clic()
+                if image_perso.choisi == True:
+                    draw_perso =2
+                    for image_perso in image_perso_liste:
+                        image_perso.affiche = False
+                        i = 0
+                        background(0,0,0)
+                    break
+        if draw_perso == 2 and image_perso_liste[i].affiche == False:
+            e = False
+            for i in range(25):
+                image_perso_liste[i].x -=275
                 image_perso_liste[i].affiche = True
-                image(load_image("yes.png"),-50,50)
+                if image_perso_liste[i].choisi == True:
+                    fill(30,30,30)
+                    rect(550,0,5,650)
+                    for ligne in range(120,650,40):
+                        rect(550,ligne,650,3)
+                    image_perso_liste[i].x = 610
+                    image_perso_liste[i].y =25
+                    image_perso_liste[i].affiche = False
+                    image_perso_liste[i].afficher()
+                    image_perso_liste[i].affiche = True
+                    image(load_image("yes.png"),-50,50)
+                    e = True
+            if e == True:
+                draw_perso = 4
+        if draw_perso == 4 and e == True:
+            a = input("C'est quoi ton truc")
+            draw_perso = 3
+            print(a)
+        if draw_perso == 3 and e == True:
+            b = input("> ")
+            if b == "":
+                draw_perso = 4
+    #elif ecran == "depart":
+
+    #elif ecran == "personalisation":
+
 
     noStroke()
 
