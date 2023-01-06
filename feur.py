@@ -221,7 +221,9 @@ def draw():
                 draw_perso = 4
     #elif ecran == "depart":
 
-    #elif ecran == "personalisation":
+
+    elif ecran == "personalisation":
+        image(load_image("personalisation.png"),0,0)
 
 
     noStroke()

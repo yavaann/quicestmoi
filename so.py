@@ -1,7 +1,8 @@
-from socket import *
+import socket
+from socket import gethostbyname
 
 def extract_ip():
-    st = socket(socket.AF_INET, socket.SOCK_DGRAM)
+    st = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:       
         st.connect(('10.255.255.255', 1))
         IP = st.getsockname()[0]
@@ -10,5 +11,31 @@ def extract_ip():
     finally:
         st.close()
     return IP
-    
-print(extract_ip())
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+server_address = (gethostbyname(str(extract_ip())), 6969)
+print('Starting up on {} port {}'.format(*server_address))
+sock.bind(server_address)
+
+# Écoute des connexions entrantes
+sock.listen(1)
+
+
+
+
+while True:
+    # Attente d'une connexion
+    print('Waiting for a connection')
+    connection, client_address = sock.accept()
+
+    try:
+        print('Connection from', client_address)
+
+        while True:
+            data = connection.recv(8096)
+            print(data.decode("utf-8"))
+            connection.sendall(input(">> ").encode("utf-8"))
+            break
+    finally:
+        connection.close()
