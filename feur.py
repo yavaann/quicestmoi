@@ -20,14 +20,14 @@ draw_perso = 0
 i=0
 
 
-b = Image.open("assets/background.png")
+b = Image.open("assets/background_jeu/background.png")
 b=b.convert("RGBA")
 
 b=b.resize((1200,560))
-b.save("assets/background1.png")
+b.save("assets/background_jeu/background1.png")
 
 def compile_image(liste_image):
-    background_image = Image.open("background_image.png")
+    background_image = Image.open("assets/background_jeu/background_image.png")
     background_image = background_image.convert("RGBA")
     imagelist = []
     font = ImageFont.truetype("police/Aqum2.otf", 15)
@@ -59,7 +59,7 @@ def compile_image(liste_image):
             background_image2.text((x,y),liste_image[compteur_id_perso].nom_perso,(0,0,0),font=font,anchor="ma")
             compteur_id_perso+=1
             x +=100
-    background_image.save("yes.png")
+    background_image.save("assets/background_jeu/yes.png")
 
 def compile_image_perso(perso_name,list_arg):
     perso = Image.open("images/perso_vierge.png")
@@ -103,7 +103,7 @@ compile_image_perso("Roger",[1,1,1,1,1,1,1,1,1])
 
 class image_personnage():
     def __init__(self,x,y,perso_id):
-        self.x = x+275
+        self.x = x+310
         self.y = y
         self.compteur=0
         self.choisi = False
@@ -127,7 +127,7 @@ class image_personnage():
         #if self.x != 610 and self.y !=25:
             #text(str(self.nom_perso),self.x+25,self.y+50)
         if self.choisi == True and self.x ==610 and self.y==25:
-            fill(255,255,255)
+            fill(0,0,0)
             text(str(self.nom_perso),self.x+25,self.y+75)
             text("Personnage choisi",self.x+25,self.y+50)
 
@@ -167,15 +167,13 @@ def setup():
 i = 0
 souris_dessus = False
 ecran = "jeu"
-e = False
 def draw():
     global draw_perso,i,compteur_id_perso,ecran,e
     if ecran == "jeu":
         if draw_perso ==0 and image_perso_liste[i].affiche == False:
             draw_perso =1
-            image(load_image("assets/background1.png"),0,0)
-            #background(0,0,0)
-            image(load_image("yes.png"),259,50)
+            image(load_image("assets/background_jeu/background1.png"),0,0)
+            image(load_image("assets/background_jeu/yes.png"),259,50)
         if draw_perso == 1:
             for image_perso in image_perso_liste:
                 i +=1
@@ -190,40 +188,23 @@ def draw():
                     for image_perso in image_perso_liste:
                         image_perso.affiche = False
                         i = 0
-                        background(0,0,0)
                     break
         if draw_perso == 2 and image_perso_liste[i].affiche == False:
-            e = False
             for i in range(25):
                 image_perso_liste[i].x -=275
                 image_perso_liste[i].affiche = True
                 if image_perso_liste[i].choisi == True:
-                    fill(30,30,30)
-                    rect(550,0,5,650)
-                    for ligne in range(120,650,40):
-                        rect(550,ligne,650,3)
                     image_perso_liste[i].x = 610
                     image_perso_liste[i].y =25
                     image_perso_liste[i].affiche = False
                     image_perso_liste[i].afficher()
                     image_perso_liste[i].affiche = True
-                    image(load_image("yes.png"),-50,50)
-                    e = True
-            if e == True:
-                draw_perso = 4
-        if draw_perso == 4 and e == True:
-            a = input("C'est quoi ton truc")
-            draw_perso = 3
-            print(a)
-        if draw_perso == 3 and e == True:
-            b = input("> ")
-            if b == "":
-                draw_perso = 4
+                    image(load_image("assets/background_jeu/yes.png"),-50,50)
     #elif ecran == "depart":
 
 
     elif ecran == "personalisation":
-        image(load_image("personalisation.png"),0,0)
+        image(load_image("assets/background_jeu/personalisation.png"),0,0)
 
 
     noStroke()
