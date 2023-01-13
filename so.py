@@ -18,14 +18,12 @@ server_address = (gethostbyname(str(extract_ip())), 6969)
 print('Starting up on {} port {}'.format(*server_address))
 sock.bind(server_address)
 
-# Écoute des connexions entrantes
 sock.listen(1)
 
 
 
 
 while True:
-    # Attente d'une connexion
     print('Waiting for a connection')
     connection, client_address = sock.accept()
 
