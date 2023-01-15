@@ -113,67 +113,77 @@ def extract_ip():
 
 
 
-
-def setup_server():
-	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-	server_address = (gethostbyname(str(extract_ip())), 6969)
-	print("c'est good")
-	sock.bind(server_address)
-
-	sock.listen(1)
-	while True:
-	    print('Waiting for a connection')
-	    print(sock)
-	    connection, client_address = sock.accept()
-
-	    try:
-	        while True:
-	            data = connection.recv(8096)
-	            tchat.tchat.configure(state='normal')
-	            tchat.tchat.insert(END,data.decode("utf-8")+str("\n"))
-	            tchat.tchat.configure(state='disabled')
-	            break
-	    finally:
-	        None
+class Serveur():
+	def __init__(self):
+		self.pseudo = "Mon Pseudo"
+		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.server_address = (gethostbyname(str(extract_ip())), 6969)
+		print("c'est good")
+		self.sock.bind(self.server_address)
+		self.sock.listen(1)
+		print('Waiting for a connection')
+		print(self.sock)
+		self.connection, self.client_address = self.sock.accept()
+	def recevoir_packet(self):
+		try:
+		    while True:
+		        data = self.connection.recv(8096)
+		        tchat.tchat.configure(state='normal')
+		        tchat.tchat.insert(END,data.decode("utf-8"))
+		        tchat.tchat.configure(state='disabled')
+		        break
+		finally:
+		    None
+	def envoyer_packet(self):
+		try:
+			message = self.pseudo+" : "+tchat.message.get()+str("\n")
+			self.connection.sendall(message.encode("utf-8"))
+		finally:
+			None
 
 
 
 class User_connect():
 	def __init__(self,b):
 		self.b=b
-		self.ip = None
-		self.pseudo = None
-	def connecter_user(self,ip):
-		self.ip = ip 
-		self.pseudo = pseudo
+		self.ip = "13.569.456.11"
+		self.pseudo = "Yavan"
 	def afficher(self):
 		if self.ip == None:
-			b.create_text(985,200,text="Joueur en attente...",font=("Aqum two", 17))
-			b.create_text(850,250,text="Joueur : ...",font=("Aqum two",15),anchor="nw")
-			b.create_text(850,310,text="IP : ...",font=("Aqum two",15),anchor="nw")
+			self.b.create_text(985,200,text="Joueur en attente...",font=("Aqum two", 17))
+			self.b.create_text(850,250,text="Joueur : ...",font=("Aqum two",15),anchor="nw")
+			self.b.create_text(850,310,text="IP : ...",font=("Aqum two",15),anchor="nw")
 			Label(jeu,text="En attente",font=("Aqum two",17)).place(x=169,y=438)
 		else:
-			b.create_text(985,200,text="Joueur connecté ! ",font=("Aqum two", 17))
-			b.create_text(850,250,text="Joueur : "+str(self.pseudo),font=("Aqum two",15),anchor="nw")
-			b.create_text(850,310,text="IP : "+str(self.ip),font=("Aqum two",15),anchor="nw")
+			self.b.create_text(985,200,text="Joueur connecté ! ",font=("Aqum two", 17))
+			self.b.create_text(850,250,text="Joueur : "+str(self.pseudo),font=("Aqum two",15),anchor="nw")
+			self.b.create_text(850,310,text="IP : "+str(self.ip),font=("Aqum two",15),anchor="nw")
 
 class Tchat():
 	def __init__(self,jeu):
 		self.frame = Frame(jeu)
 		self.tchat = Text(self.frame)
 		self.lastmess = None
+		self.message = StringVar()
+		self.pseudo = "Feur"
+		self.serveur = None
 	def afficher(self):
 		self.frame = Frame()
 		self.tchat = Text(self.frame,width=30,bg="#31202c",fg="#ffffff",state='disabled')
 		self.frame.pack(side=RIGHT,fill=Y,expand=False)
 		self.tchat.pack(fill=Y,expand=True)
-		self.entry = Entry(self.frame,bg="#b6418c")
+		self.entry = Entry(self.frame,bg="#b6418c",textvariable=self.message)
 		self.entry.pack(side=LEFT,fill=BOTH,expand=True)
-		self.bouton=Button(self.frame,text="Envoyer",bg="#852563",activebackground="#c14698",command=None)
+		self.bouton=Button(self.frame,text="Envoyer",bg="#852563",activebackground="#c14698",command=self.envoyer)
 		self.bouton.pack(side=LEFT,fill=BOTH,expand=True)
 	def envoyer(self):
-		None
+		print(self.serveur)
+		tchat.tchat.configure(state='normal')
+		self.tchat.insert(END,"Moi : "+self.message.get()+str("\n"))
+		tchat.tchat.configure(state='disable')
+		self.serveur.envoyer_packet()
+		self.message.set("")
+
 
 
 def ecran_jeu(choix,perso):
@@ -186,7 +196,8 @@ def ecran_multi(jeu):
 	frame_ip_jouer = Canvas(jeu,width=1200,height=560)
 	frame_ip_jouer.create_image(600,280,image=img)
 	frame_ip_jouer.create_text(225,100,text="Votre IP : "+str(ip),font=("Aqum two", 17))
-	user_connect(True,frame_ip_jouer)
+	user_connection.b = frame_ip_jouer
+	user_connection.afficher()
 	frame_ip_jouer.pack(fill=BOTH,expand=True)
 
 tchat=Tchat(jeu)
@@ -197,7 +208,15 @@ def jeu_ecran(choix):
 	tchat.afficher()	
 
 
-
+def setup_server():
+	global tchat
+	serveur = Serveur()
+	print(serveur)
+	
+	tchat.serveur = serveur
+	print(tchat.serveur)
+	while True:
+		serveur.recevoir_packet()
 
 bdd = sqlite3.connect("bdd/animalcrossing.db")
 curseur = bdd.cursor()
@@ -211,13 +230,17 @@ for perso_id in range(1,26):
 
 choix = Background("background",jeu)
 perso = Personnages(liste_personnages,jeu,choix)
+attente = Background("IP",jeu)
+user_connection = User_connect(None)
+
 
 def ecran(choix,perso):
 	attente = Background("IP",jeu)
 
 
-	ecran_jeu(choix,perso)
-	#ecran_multi(jeu)
+	#ecran_jeu(choix,perso)
+	ecran_multi(jeu)
+
 
 thread1 = threading.Thread(target=setup_server)
 ecran(choix,perso)
