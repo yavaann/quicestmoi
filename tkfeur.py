@@ -47,8 +47,8 @@ class Image_perso():
 		self.image = self.image.resize((63,63))
 		self.image.save("images/choisi/"+str(nom)+".png")
 		self.img = ImageTk.PhotoImage(file="images/choisi/"+str(nom)+".png")
-		self.bouton = Button(fenetre,image=self.img,command=self.clic)
-		self.labelimg = Label(fenetre,image=self.img)
+		self.bouton = Button(fenetre,image=self.img,command=self.clic,bg="#c14698",bd=0,activebackground="#852563")
+		self.labelimg = Label(fenetre,image=self.img,bg="#c14698")
 		self.choix = choix
 		self.fenetre = fenetre
 	def bouton_image(self):
@@ -63,39 +63,39 @@ class Image_perso():
 class Personnages():
 	def __init__(self,liste_personnages,fenetre,choix):
 		self.liste_personnages = liste_personnages
-		self.frame = Frame(fenetre)
+		self.frame = Frame(fenetre,bg="#c14698")
 		self.liste_image = []
-		self.f2 = Frame(fenetre)
+		self.f2 = Frame(fenetre,bg="#c14698")
 		self.choix = choix
 
 	def afficher_en_bouton(self):
 		id_perso = 0
 		self.frame.pack_forget()
-		self.frame=Canvas(jeu)
+		self.frame=Frame(jeu,bg="#c14698")
 		self.frame.pack(pady=50)
 		for ligne in range(5):
 			for colone in range(8):
-				self.f2=Canvas(self.frame)
+				self.f2=Frame(self.frame,bg="#c14698")
 				self.liste_image.append(Image_perso(self.liste_personnages[id_perso],self.f2,self.choix))
 				id_perso+=1
 				self.liste_image[id_perso-1].bouton_image().pack()
-				self.label = Label(self.f2,text=str(self.liste_personnages[id_perso-1])+str(" (F)"),font=("Aqum two", 10))
+				self.label = Label(self.f2,text=str(self.liste_personnages[id_perso-1])+str(" (F)"),font=("Aqum two", 10),bg="#c14698")
 				self.label.pack()
 				self.f2.grid(row=ligne,column=colone,padx=3)
 
 	def afficher_label(self):
 		id_perso = 0
 		self.frame.pack_forget()
-		self.frame = Frame(jeu)
+		self.frame = Frame(jeu,bg="#c14698")
 		self.frame.pack(side=LEFT,padx=50,pady=50)
 		self.liste_image = []
 		for ligne in range(5):
 			for colone in range(8):
-				self.f2=Canvas(self.frame)
+				self.f2=Frame(self.frame,bg="#c14698")
 				self.liste_image.append(Image_perso(self.liste_personnages[id_perso],self.f2,self.choix))
 				id_perso+=1
 				self.liste_image[id_perso-1].label_image().pack()
-				self.label = Label(self.f2,text=str(self.liste_personnages[id_perso-1])+str(" (F)"),font=("Aqum two", 10))
+				self.label = Label(self.f2,text=str(self.liste_personnages[id_perso-1])+str(" (F)"),font=("Aqum two", 10),bg="#c14698")
 				self.label.pack()
 				self.f2.grid(row=ligne,column=colone,padx=3)
 

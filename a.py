@@ -18,7 +18,7 @@ pseudo = input("Pseudo : ")
 class srv():
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_address = (input("> "), 6969)
+        self.server_address = (extract_ip(), 6969)
         print('Connecting to {} port {}'.format(*self.server_address))
         self.sock.connect(self.server_address)
     def recevoir(self):
