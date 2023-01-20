@@ -11,9 +11,11 @@ from socket import gethostbyname
 import threading
 from math import *
 from random import *
+import re
+import marshal
 
 jeu = Tk()
-jeu.geometry("1200x560")
+jeu.geometry("1200x760")
 jeu.resizable(False,False)
 
 class Background():
@@ -26,7 +28,7 @@ class Background():
 	def resize_background(self):
 		b = Image.open("assets/background_jeu/"+str(self.nom)+".png")
 		b=b.convert("RGBA")
-		b=b.resize((1200,560))
+		b=b.resize((1200,760))
 		b.save("assets/background_jeu/"+str(self.nom)+"1.png")
 
 	def background(self):
@@ -34,7 +36,7 @@ class Background():
 		self.img=PhotoImage(file = "assets/background_jeu/"+str(self.nom)+"1.png",master=self.fenetre)
 		background = Label(jeu,image=self.img)
 
-		background.place(x=0,y=0,in_=self.fenetre)
+		background.place(x=-2,y=-2,in_=self.fenetre)
 		self.affiche = True
 		return self.img
 
@@ -44,7 +46,7 @@ class Image_perso():
 	def __init__(self,nom,fenetre,choix):
 		self.nom = nom
 		self.image = Image.open("assets/perso_fin/"+str(self.nom)+".png")
-		self.image = self.image.resize((63,63))
+		self.image = self.image.resize((75,75))
 		self.image.save("images/choisi/"+str(nom)+".png")
 		self.img = ImageTk.PhotoImage(file="images/choisi/"+str(nom)+".png")
 		self.bouton = Button(fenetre,image=self.img,command=self.clic,bg="#c14698",bd=0,activebackground="#852563")
@@ -54,7 +56,6 @@ class Image_perso():
 	def bouton_image(self):
 		return self.bouton
 	def clic(self):
-		thread1.start()
 		jeu_ecran(self.choix)
 	def label_image(self):
 		return self.labelimg
@@ -72,7 +73,7 @@ class Personnages():
 		id_perso = 0
 		self.frame.pack_forget()
 		self.frame=Frame(jeu,bg="#c14698")
-		self.frame.pack(pady=50)
+		self.frame.pack(padx=90,pady=90)
 		for ligne in range(5):
 			for colone in range(8):
 				self.f2=Frame(self.frame,bg="#c14698")
@@ -142,24 +143,50 @@ class Serveur():
 			self.connection.sendall(message.encode("utf-8"))
 		finally:
 			None
-
+	def connect(self):
+		user_connection.ip = self.client_address
+		print(self.client_address)
+		data = self.connection.recv(8096)
+		user_connection.pseudo = data.decode("utf-8")
+		user_connection.afficher()
+		self.connection.sendall(perso_creer.envoyer_liste())
 
 
 class User_connect():
 	def __init__(self,b):
 		self.b=b
-		self.ip = "13.569.456.11"
-		self.pseudo = "Yavan"
+		self.ip = None
+		self.pseudo = None
+		self.bouton = PhotoImage(file=r"assets/background_jeu/bouton_jouer.png")
 	def afficher(self):
 		if self.ip == None:
+			ip = extract_ip()
+			img=attente.background()
+			frame_ip_jouer = Canvas(jeu,width=1200,height=560)
+			frame_ip_jouer.create_image(600,280,image=img)
+			frame_ip_jouer.create_text(225,100,text="Votre IP : "+str(ip),font=("Aqum two", 17))
+			self.b = frame_ip_jouer
 			self.b.create_text(985,200,text="Joueur en attente...",font=("Aqum two", 17))
 			self.b.create_text(850,250,text="Joueur : ...",font=("Aqum two",15),anchor="nw")
 			self.b.create_text(850,310,text="IP : ...",font=("Aqum two",15),anchor="nw")
 			Label(jeu,text="En attente",font=("Aqum two",17)).place(x=169,y=438)
 		else:
+			self.b.pack_forget()
+			ip = extract_ip()
+			img=attente.background()
+			frame_ip_jouer = Canvas(jeu,width=1200,height=560)
+			frame_ip_jouer.create_image(600,280,image=img)
+			frame_ip_jouer.create_text(225,100,text="Votre IP : "+str(ip),font=("Aqum two", 17))
+			self.b = frame_ip_jouer
 			self.b.create_text(985,200,text="Joueur connecté ! ",font=("Aqum two", 17))
 			self.b.create_text(850,250,text="Joueur : "+str(self.pseudo),font=("Aqum two",15),anchor="nw")
-			self.b.create_text(850,310,text="IP : "+str(self.ip),font=("Aqum two",15),anchor="nw")
+			self.b.create_text(850,310,text="IP : "+str(self.ip[0]),font=("Aqum two",15),anchor="nw")
+			Button(jeu,text="Jouer",font=("Aqum two",17),image=self.bouton,command=self.jouer).place(x=60,y=409)
+		self.b.pack()
+	def jouer(self):
+		self.b.pack_forget()
+		choix.background()
+		perso.afficher_en_bouton()
 
 class Tchat():
 	def __init__(self,jeu):
@@ -186,21 +213,37 @@ class Tchat():
 		self.serveur.envoyer_packet()
 		self.message.set("")
 
-
+bouton=PhotoImage(file=r"assets/background_jeu/bouton_jouer.png")
+bouton1=PhotoImage(file=r"assets/background_jeu/bouton_jouer1.png")
+def ecran_principal(principal):
+	principal.background()
+	Button(jeu,text="Jouer",font=("Aqum two",17),image=bouton,command=ecran_multi).pack()
+	Button(jeu,text="Jouer",font=("Aqum two",17),image=bouton1,command=ecran_join).pack()
 
 def ecran_jeu(choix,perso):
 	choix.background()
 	perso.afficher_en_bouton()
 
-def ecran_multi(jeu):
-	ip = extract_ip()
-	img=attente.background()
-	frame_ip_jouer = Canvas(jeu,width=1200,height=560)
-	frame_ip_jouer.create_image(600,280,image=img)
-	frame_ip_jouer.create_text(225,100,text="Votre IP : "+str(ip),font=("Aqum two", 17))
-	user_connection.b = frame_ip_jouer
+def ecran_join():
+	def test():
+		print(ip.get())
+		print(pseudo.get())
+	for widget in jeu.winfo_children():
+		widget.pack_forget()
+	choix.background()
+	ip = StringVar()
+	Entry(jeu,textvariable=ip).pack()
+	pseudo = StringVar()
+	Entry(jeu,textvariable=pseudo).pack()
+	Button(jeu,command=test).pack()
+
+
+
+def ecran_multi():
+	for widget in jeu.winfo_children():
+		widget.pack_forget()
+	thread1.start()
 	user_connection.afficher()
-	frame_ip_jouer.pack(fill=BOTH,expand=True)
 
 tchat=Tchat(jeu)
 
@@ -213,10 +256,8 @@ def jeu_ecran(choix):
 def setup_server():
 	global tchat
 	serveur = Serveur()
-	print(serveur)
-	
 	tchat.serveur = serveur
-	print(tchat.serveur)
+	serveur.connect()
 	while True:
 		serveur.recevoir_packet()
 
@@ -275,6 +316,8 @@ def compile_image_perso(perso_name,list_arg):
     bouche = Image.open("assets/bouche/bouche"+str(list_arg[4])+".png")
     cosmetique = Image.open("assets/cosmetique/cosmetique"+str(list_arg[5])+".png")
     background = Image.open("assets/background/background"+str(list_arg[6])+".png")
+    background = background.convert("RGBA")
+    background = background.resize((427,427))
     cadre = Image.open("assets/cadre.png")
     perso.alpha_composite(background)
     perso.alpha_composite(visage)
@@ -292,8 +335,8 @@ def compile_image_perso(perso_name,list_arg):
 
 
 class Gen_perso():
-	def __init__(self):
-		self.relation = {"Bouche":[(1,3),(2,2),(3,1),(4,1)],"Yeux":[(1,1),(2,2),(3,4),(4,2),(5,3),(6,2)],"Visage":[(1,1),(2,2)],"Nez":[(1,1),(2,2),(3,2)],"Cosmetique":[(1,1),(2,2)],"Cheuveux":[(1,1),(2,3),(3,5),(4,2),(5,4)],"Background":[(1,1)],"Genre":[(1,1),(2,2)]}
+	def __init__(self,liste_perso):
+		self.relation = {"Bouche":[(1,3),(2,2),(3,1),(4,4),(5,2),(6,4),(7,2),(8,2),(9,1)],"Yeux":[(1,1),(2,2),(3,4),(4,2),(5,3),(6,3),(7,3),(8,5),(9,3),(10,3),(11,2),(12,5),(13,4),(14,2),(15,3),(16,3),(17,4),(18,5),(19,3),(20,2),(21,4),(22,5),(23,3)],"Visage":[(1,1),(2,2)],"Nez":[(1,1),(2,2),(3,2),(4,2),(5,2),(6,1),(7,1)],"Cosmetique":[(1,1),(2,2)],"Cheuveux":[(1,1),(2,3),(3,5),(4,2),(5,4),(6,2),(7,3),(8,1)],"Background":[(1,1),(2,1),(3,2),(4,2),(5,2),(6,3),(7,3),(8,3)],"Genre":[(1,1),(2,2)]}
 		self.liste_attribut = []
 		self.liste_attribut.append(Nb_attribut_list("cheuveux").liste)
 		self.liste_attribut.append(Nb_attribut_list("visage").liste)
@@ -303,11 +346,16 @@ class Gen_perso():
 		self.liste_attribut.append(Nb_attribut_list("cosmetique").liste)
 		self.liste_attribut.append(Nb_attribut_list("background").liste)
 		self.liste_attribut.append(Nb_attribut_list("genre").liste)
-		self.liste_perso = []
-		for perso in range(1,41):
+		self.liste_perso = liste_perso
+		self.liste_attribut_total = []
+		
+		for perso in range(1,len(self.liste_perso)+1):
+			print(perso)
 			self.generer_attribut_personnage(perso)
+		print(len(self.liste_attribut_total))
+		print(Gen_perso_par_liste(self.liste_attribut_total))
 	def generer_attribut_personnage(self,nb_perso):
-		self.dico_attribut = {"Cheuveux" : None,"Visage":None,"Yeux":None,"Nez":None,"Bouche":None,"Cosmetique":None,"Background":None,"Genre":None,}
+		self.dico_attribut = {"Cheuveux" : None,"Visage":None,"Yeux":None,"Nez":None,"Bouche":None,"Cosmetique":None,"Background":None,"Genre":None}
 		for l_attribut_simple in self.liste_attribut:
 			for indice in range(1,len(l_attribut_simple)):
 				random_attribut_list = []
@@ -318,37 +366,59 @@ class Gen_perso():
 								random_attribut_list.append(num_att[0])
 								shuffle(random_attribut_list)
 						l_attribut_simple[indice][2].pop(0)
-						print(l_attribut_simple[indice][0],random_attribut_list[0])
 						self.dico_attribut[l_attribut_simple[0]] = (l_attribut_simple[indice][0],random_attribut_list[0])
 				except:
 					None
 		random_attribute = []
+		self.liste_attribut_total.append(self.liste_perso[nb_perso-1])
+		self.liste_attribut_total.append(self.dico_attribut["Cheuveux"][1])
+		self.liste_attribut_total.append(self.dico_attribut["Visage"][1])
+		self.liste_attribut_total.append(self.dico_attribut["Yeux"][1])
+		self.liste_attribut_total.append(self.dico_attribut["Nez"][1])
+		self.liste_attribut_total.append(self.dico_attribut["Bouche"][1])
+		self.liste_attribut_total.append(self.dico_attribut["Cosmetique"][1])
+		self.liste_attribut_total.append(self.dico_attribut["Background"][1])
+		self.liste_attribut_total.append(self.dico_attribut["Genre"][1])
 		compile_image_perso(nb_perso,[self.dico_attribut["Cheuveux"][1],self.dico_attribut["Visage"][1],self.dico_attribut["Yeux"][1],self.dico_attribut["Nez"][1],self.dico_attribut["Bouche"][1],self.dico_attribut["Cosmetique"][1],self.dico_attribut["Background"][1]])
-
+	def envoyer_liste(self):
+		self.liste_attribut_total = marshal.dumps(self.liste_attribut_total)
+		return self.liste_attribut_total
 liste_personnages = [] 
 
-perso_creer = Gen_perso()
-print("oui")
-print(perso_creer.liste_perso)
+class Gen_perso_par_liste():
+	def __init__(self,liste):
+		for perso in range(40):
+			compile_image_perso(perso+1,[liste[9*perso+1],liste[9*perso+2],liste[9*perso+3],liste[9*perso+4],liste[9*perso+5],liste[9*perso+6],liste[9*perso+7],liste[9*perso+8]])
 
-for perso_id in range(1,41): 
-	liste_personnages.append(perso_id) 
- 
+
+perso_reels = os.listdir("assets/perso_reel/")
+perso_reels_liste = []
+for perso_reel in perso_reels:
+	perso_reels_liste.append(perso_reel)
+
+for perso in range(1,41):
+	rand = randint(0,40)
+	if rand == 20:
+		shuffle(perso_reels_liste)
+		perso_choisi = perso_reels_liste[0]
+		perso_reels_liste.pop(0)
+		perso_choisi = perso_choisi.replace(".png","")
+		liste_personnages.append(perso_choisi)
+	else:
+		liste_personnages.append(perso)
+#perso_creer = Gen_perso(liste_personnages)
 
 choix = Background("background",jeu)
 perso = Personnages(liste_personnages,jeu,choix)
 attente = Background("IP",jeu)
 user_connection = User_connect(None)
+principal = Background("background3",jeu)
 
-
-def ecran(choix,perso):
+def ecran(choix,perso,principal):
 	attente = Background("IP",jeu)
-
-
-	ecran_jeu(choix,perso)
-	#ecran_multi(jeu)
-
+	ecran_principal(principal)
+	#ecran_jeu(choix,perso)
 
 thread1 = threading.Thread(target=setup_server)
-ecran(choix,perso)
+ecran(choix,perso,principal)
 jeu.mainloop()
