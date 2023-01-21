@@ -87,7 +87,7 @@ class srv():
                 message = input(">> ")
                 if message == "":
                     break
-                message = pseudo+" : "+message+"\n"
+                message = "t"+pseudo+" : "+message+"\n"
                 self.sock.sendall(message.encode("utf-8"))
 
 serv = srv(pseudo)

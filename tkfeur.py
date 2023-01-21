@@ -1,5 +1,5 @@
 from tkinter import *
-from PIL import ImageFont,Image, ImageTk,ImageDraw
+from PIL import ImageFont,Image, ImageTk,ImageDraw,ImageFile
 import sqlite3
 import time
 import socket
@@ -13,6 +13,7 @@ from math import *
 from random import *
 import re
 import marshal
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 jeu = Tk()
 jeu.geometry("1200x760")
@@ -47,8 +48,8 @@ class Image_perso():
 		self.nom = nom
 		self.image = Image.open("assets/perso_fin/"+str(self.nom)+".png")
 		self.image = self.image.resize((75,75))
-		self.image.save("images/choisi/"+str(nom)+".png")
-		self.img = ImageTk.PhotoImage(file="images/choisi/"+str(nom)+".png")
+		self.image.save("assets/perso_fini/"+str(nom)+".png")
+		self.img = ImageTk.PhotoImage(file="assets/perso_fini/"+str(nom)+".png")
 		self.bouton = Button(fenetre,image=self.img,command=self.clic,bg="#c14698",bd=0,activebackground="#852563")
 		self.labelimg = Label(fenetre,image=self.img,bg="#c14698")
 		self.choix = choix
@@ -118,7 +119,8 @@ def extract_ip():
 
 class Serveur():
 	def __init__(self):
-		self.pseudo = "Mon Pseudo"
+		self.pseudo = user_connection.pseudo.get()
+		print(self.pseudo)
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.server_address = (gethostbyname(str(extract_ip())), 6969)
 		print("c'est good")
@@ -131,16 +133,18 @@ class Serveur():
 		try:
 		    while True:
 		        data = self.connection.recv(8096)
-		        tchat.tchat.configure(state='normal')
-		        tchat.tchat.insert(END,data.decode("utf-8"))
-		        tchat.tchat.configure(state='disabled')
+		        if data.decode("utf-8")[0] == "t":
+		        	tchat.tchat.configure(state='normal')
+		        	tchat.tchat.insert(END,data.decode("utf-8")[1:])
+		        	tchat.tchat.configure(state='disabled')
 		        break
-		finally:
+		except:
 		    None
 	def envoyer_packet(self):
 		try:
-			message = self.pseudo+" : "+tchat.message.get()+str("\n")
-			self.connection.sendall(message.encode("utf-8"))
+			if tchat.message.get()!="":
+				message = "t"+self.pseudo+" : "+tchat.message.get()+str("\n")
+				self.connection.sendall(message.encode("utf-8"))
 		finally:
 			None
 	def connect(self):
@@ -156,38 +160,48 @@ class User_connect():
 	def __init__(self,b):
 		self.b=b
 		self.ip = None
-		self.pseudo = None
 		self.bouton = PhotoImage(file=r"assets/background_jeu/bouton_jouer.png")
+		self.pseudo = StringVar()
+		self.pseudo_enter = None
+		self.confirmer = None
 	def afficher(self):
 		if self.ip == None:
-			ip = extract_ip()
+			self.ip = extract_ip()
 			img=attente.background()
-			frame_ip_jouer = Canvas(jeu,width=1200,height=560)
-			frame_ip_jouer.create_image(600,280,image=img)
-			frame_ip_jouer.create_text(225,100,text="Votre IP : "+str(ip),font=("Aqum two", 17))
+			frame_ip_jouer = Canvas(jeu,width=1200,height=760)
+			frame_ip_jouer.create_image(600,380,image=img)
 			self.b = frame_ip_jouer
 			self.b.create_text(985,200,text="Joueur en attente...",font=("Aqum two", 17))
 			self.b.create_text(850,250,text="Joueur : ...",font=("Aqum two",15),anchor="nw")
 			self.b.create_text(850,310,text="IP : ...",font=("Aqum two",15),anchor="nw")
 			Label(jeu,text="En attente",font=("Aqum two",17)).place(x=169,y=438)
+			self.pseudo_enter = Entry(jeu,textvariable=self.pseudo,font=("Aqum two",13),width=14)
+			self.pseudo_enter.place(x=600,y=85)
+			self.confirmer = Button(jeu,command=self.confirm,text="✓")
+			self.confirmer.place(x=770,y=86)
 		else:
 			self.b.pack_forget()
 			ip = extract_ip()
 			img=attente.background()
-			frame_ip_jouer = Canvas(jeu,width=1200,height=560)
-			frame_ip_jouer.create_image(600,280,image=img)
+			frame_ip_jouer = Canvas(jeu,width=1200,height=760)
+			frame_ip_jouer.create_image(600,380,image=img)
 			frame_ip_jouer.create_text(225,100,text="Votre IP : "+str(ip),font=("Aqum two", 17))
 			self.b = frame_ip_jouer
 			self.b.create_text(985,200,text="Joueur connecté ! ",font=("Aqum two", 17))
 			self.b.create_text(850,250,text="Joueur : "+str(self.pseudo),font=("Aqum two",15),anchor="nw")
 			self.b.create_text(850,310,text="IP : "+str(self.ip[0]),font=("Aqum two",15),anchor="nw")
-			Button(jeu,text="Jouer",font=("Aqum two",17),image=self.bouton,command=self.jouer).place(x=60,y=409)
+			Button(jeu,image=self.bouton,command=self.jouer).place(x=60,y=409)
+			self.pseudo_enter.place(x=600,y=85)
 		self.b.pack()
 	def jouer(self):
 		self.b.pack_forget()
 		choix.background()
 		perso.afficher_en_bouton()
-
+	def confirm(self):
+		self.confirmer.place_forget()
+		self.b.create_text(225,100,text="Votre IP : "+str(self.ip),font=("Aqum two", 17))
+		self.pseudo_enter.configure(state="disabled")
+		thread1.start()
 class Tchat():
 	def __init__(self,jeu):
 		self.frame = Frame(jeu)
@@ -207,18 +221,57 @@ class Tchat():
 		self.bouton.pack(side=LEFT,fill=BOTH,expand=True)
 	def envoyer(self):
 		print(self.serveur)
-		tchat.tchat.configure(state='normal')
-		self.tchat.insert(END,"Moi : "+self.message.get()+str("\n"))
-		tchat.tchat.configure(state='disable')
+		if self.message !="":
+			tchat.tchat.configure(state='normal')
+			self.tchat.insert(END,"Moi : "+self.message.get()+str("\n"))
+			tchat.tchat.configure(state='disable')
 		self.serveur.envoyer_packet()
 		self.message.set("")
 
 bouton=PhotoImage(file=r"assets/background_jeu/bouton_jouer.png")
 bouton1=PhotoImage(file=r"assets/background_jeu/bouton_jouer1.png")
+
+
+class Join():
+	def __init__(self,pseudo,ip):
+		self.pseudo = pseudo
+		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.server_address = (ip, 6969)
+		print('Connecting to {} port {}'.format(*self.server_address))
+		self.sock.connect(self.server_address)
+		self.sock.sendall(pseudo.encode("utf-8"))
+		data = self.sock.recv(8096)
+		data = marshal.loads(data)
+		Gen_perso_par_liste(data)
+		liste_perso = []
+		for i in range(40):
+			liste_perso.append(data[i*9])
+		print(liste_perso)
+		perso =Personnages(liste_perso,jeu,choix)
+		choix.background()
+		perso.afficher_en_bouton()
+	def recevoir(self):
+	    while True:
+	    	data = self.sock.recv(8096)
+	    	if data.decode("utf-8")[0] == "t":
+	    		tchat.tchat.configure(state="normal")
+	    		tchat.tchat.insert(END,data.decode("utf-8"))
+	    		tchat.tchat.configure(state="disabled")
+	def envoyer(self):
+		try:
+			message = "t"+self.pseudo+" : "+tchat.message.get()+str("\n")
+			self.connection.sendall(message.encode("utf-8"))
+		finally:
+			None
+
+
+
 def ecran_principal(principal):
 	principal.background()
 	Button(jeu,text="Jouer",font=("Aqum two",17),image=bouton,command=ecran_multi).pack()
 	Button(jeu,text="Jouer",font=("Aqum two",17),image=bouton1,command=ecran_join).pack()
+
+
 
 def ecran_jeu(choix,perso):
 	choix.background()
@@ -226,8 +279,8 @@ def ecran_jeu(choix,perso):
 
 def ecran_join():
 	def test():
-		print(ip.get())
-		print(pseudo.get())
+		if ip.get() != "" and pseudo.get() != "":
+			serv = Join(pseudo.get(),ip.get())
 	for widget in jeu.winfo_children():
 		widget.pack_forget()
 	choix.background()
@@ -242,7 +295,6 @@ def ecran_join():
 def ecran_multi():
 	for widget in jeu.winfo_children():
 		widget.pack_forget()
-	thread1.start()
 	user_connection.afficher()
 
 tchat=Tchat(jeu)
@@ -260,6 +312,10 @@ def setup_server():
 	serveur.connect()
 	while True:
 		serveur.recevoir_packet()
+
+def join_server():
+	global tchat
+	serv = Join(None)
 
 bdd = sqlite3.connect("bdd/perso.db")
 curseur = bdd.cursor()
@@ -395,7 +451,6 @@ perso_reels = os.listdir("assets/perso_reel/")
 perso_reels_liste = []
 for perso_reel in perso_reels:
 	perso_reels_liste.append(perso_reel)
-
 for perso in range(1,41):
 	rand = randint(0,40)
 	if rand == 20:
@@ -406,7 +461,7 @@ for perso in range(1,41):
 		liste_personnages.append(perso_choisi)
 	else:
 		liste_personnages.append(perso)
-#perso_creer = Gen_perso(liste_personnages)
+perso_creer = Gen_perso(liste_personnages)
 
 choix = Background("background",jeu)
 perso = Personnages(liste_personnages,jeu,choix)
