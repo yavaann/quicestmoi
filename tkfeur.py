@@ -18,7 +18,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 jeu = Tk()
 jeu.geometry("1200x760")
 jeu.resizable(False,False)
-
+serv_or_join = None
 class Background():
 	"""Cette class permet de creer un background, à partir d'une image il va être redimentionné si besoin
 	avec la méthode resize_background mais également être affiché via la méthode background"""
@@ -119,6 +119,8 @@ def extract_ip():
 
 class Serveur():
 	def __init__(self):
+		global serv_or_join
+		serv_or_join = "serv"
 		self.pseudo = user_connection.pseudo.get()
 		print(self.pseudo)
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -204,6 +206,7 @@ class User_connect():
 		thread1.start()
 class Tchat():
 	def __init__(self,jeu):
+		global serv_or_join
 		self.frame = Frame(jeu)
 		self.tchat = Text(self.frame)
 		self.lastmess = None
@@ -225,15 +228,20 @@ class Tchat():
 			tchat.tchat.configure(state='normal')
 			self.tchat.insert(END,"Moi : "+self.message.get()+str("\n"))
 			tchat.tchat.configure(state='disable')
-		self.serveur.envoyer_packet()
+			self.serveur.envoyer_packet()
 		self.message.set("")
 
 bouton=PhotoImage(file=r"assets/background_jeu/bouton_jouer.png")
 bouton1=PhotoImage(file=r"assets/background_jeu/bouton_jouer1.png")
 
+def make_perso(liste_perso):
+	perso =Personnages(liste_perso,jeu,choix)
+	return perso
 
 class Join():
 	def __init__(self,pseudo,ip):
+		for widget in jeu.winfo_children():
+			widget.pack_forget()
 		self.pseudo = pseudo
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.server_address = (ip, 6969)
@@ -247,22 +255,20 @@ class Join():
 		for i in range(40):
 			liste_perso.append(data[i*9])
 		print(liste_perso)
-		perso =Personnages(liste_perso,jeu,choix)
+		self.perso = make_perso(liste_perso)
 		choix.background()
-		perso.afficher_en_bouton()
-	def recevoir(self):
+		self.perso.afficher_en_bouton()
+	def recevoir_packet(self):
 	    while True:
 	    	data = self.sock.recv(8096)
 	    	if data.decode("utf-8")[0] == "t":
 	    		tchat.tchat.configure(state="normal")
-	    		tchat.tchat.insert(END,data.decode("utf-8"))
+	    		tchat.tchat.insert(END,data.decode("utf-8")[1:])
 	    		tchat.tchat.configure(state="disabled")
-	def envoyer(self):
-		try:
+	def envoyer_packet(self):
+		if tchat.message.get()!="":
 			message = "t"+self.pseudo+" : "+tchat.message.get()+str("\n")
-			self.connection.sendall(message.encode("utf-8"))
-		finally:
-			None
+			self.sock.sendall(message.encode("utf-8"))
 
 
 
@@ -278,18 +284,21 @@ def ecran_jeu(choix,perso):
 	perso.afficher_en_bouton()
 
 def ecran_join():
-	def test():
+	def client():
 		if ip.get() != "" and pseudo.get() != "":
 			serv = Join(pseudo.get(),ip.get())
+			tchat.serveur = serv
+			while True:
+				serv.recevoir_packet()
 	for widget in jeu.winfo_children():
 		widget.pack_forget()
+	thread3 = threading.Thread(target=client)
 	choix.background()
 	ip = StringVar()
 	Entry(jeu,textvariable=ip).pack()
 	pseudo = StringVar()
 	Entry(jeu,textvariable=pseudo).pack()
-	Button(jeu,command=test).pack()
-
+	Button(jeu,command=thread3.start).pack()
 
 
 def ecran_multi():
@@ -300,6 +309,8 @@ def ecran_multi():
 tchat=Tchat(jeu)
 
 def jeu_ecran(choix):
+	for widget in jeu.winfo_children():
+		widget.pack_forget()
 	choix.background()
 	perso.afficher_label()
 	tchat.afficher()	
@@ -461,6 +472,7 @@ for perso in range(1,41):
 		liste_personnages.append(perso_choisi)
 	else:
 		liste_personnages.append(perso)
+print(liste_personnages)
 perso_creer = Gen_perso(liste_personnages)
 
 choix = Background("background",jeu)
@@ -468,6 +480,7 @@ perso = Personnages(liste_personnages,jeu,choix)
 attente = Background("IP",jeu)
 user_connection = User_connect(None)
 principal = Background("background3",jeu)
+
 
 def ecran(choix,perso,principal):
 	attente = Background("IP",jeu)
