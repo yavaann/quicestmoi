@@ -16,7 +16,7 @@ import marshal
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 jeu = Tk()
-jeu.geometry("1200x760")
+jeu.geometry("1200x700")
 jeu.resizable(False,False)
 serv_or_join = None
 class Background():
@@ -29,7 +29,7 @@ class Background():
 	def resize_background(self):
 		b = Image.open("assets/background_jeu/"+str(self.nom)+".png")
 		b=b.convert("RGBA")
-		b=b.resize((1200,760))
+		b=b.resize((1200,700))
 		b.save("assets/background_jeu/"+str(self.nom)+"1.png")
 
 	def background(self):
@@ -170,8 +170,8 @@ class User_connect():
 		if self.ip == None:
 			self.ip = extract_ip()
 			img=attente.background()
-			frame_ip_jouer = Canvas(jeu,width=1200,height=760)
-			frame_ip_jouer.create_image(600,380,image=img)
+			frame_ip_jouer = Canvas(jeu,width=1200,height=700)
+			frame_ip_jouer.create_image(600,350,image=img)
 			self.b = frame_ip_jouer
 			self.b.create_text(985,200,text="Joueur en attente...",font=("Aqum two", 17))
 			self.b.create_text(850,250,text="Joueur : ...",font=("Aqum two",15),anchor="nw")
@@ -185,8 +185,8 @@ class User_connect():
 			self.b.pack_forget()
 			ip = extract_ip()
 			img=attente.background()
-			frame_ip_jouer = Canvas(jeu,width=1200,height=760)
-			frame_ip_jouer.create_image(600,380,image=img)
+			frame_ip_jouer = Canvas(jeu,width=1200,height=700)
+			frame_ip_jouer.create_image(600,350,image=img)
 			frame_ip_jouer.create_text(225,100,text="Votre IP : "+str(ip),font=("Aqum two", 17))
 			self.b = frame_ip_jouer
 			self.b.create_text(985,200,text="Joueur connecté ! ",font=("Aqum two", 17))
