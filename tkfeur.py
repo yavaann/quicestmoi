@@ -13,6 +13,7 @@ from math import *
 from random import *
 import re
 import marshal
+import csv
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 jeu = Tk()
@@ -45,7 +46,7 @@ class Background():
 
 class Image_perso():
 	def __init__(self,nom,fenetre,choix):
-		self.nom = nom
+		self.nom= nom
 		self.image = Image.open("assets/perso_fin/"+str(self.nom)+".png")
 		self.image = self.image.resize((75,75))
 		self.image.save("assets/perso_fini/"+str(nom)+".png")
@@ -64,6 +65,7 @@ class Image_perso():
 
 class Personnages():
 	def __init__(self,liste_personnages,fenetre,choix):
+		global liste_noms
 		self.liste_personnages = liste_personnages
 		self.frame = Frame(fenetre,bg="#c14698")
 		self.liste_image = []
@@ -78,10 +80,10 @@ class Personnages():
 		for ligne in range(5):
 			for colone in range(8):
 				self.f2=Frame(self.frame,bg="#c14698")
-				self.liste_image.append(Image_perso(self.liste_personnages[id_perso],self.f2,self.choix))
+				self.liste_image.append(Image_perso(liste_noms[self.liste_personnages[id_perso]][1],self.f2,self.choix))
 				id_perso+=1
 				self.liste_image[id_perso-1].bouton_image().pack()
-				self.label = Label(self.f2,text=str(self.liste_personnages[id_perso-1])+str(" (F)"),font=("Aqum two", 10),bg="#c14698")
+				self.label = Label(self.f2,text=str(liste_noms[self.liste_personnages[id_perso-1]][1])+str(" ("+str(liste_noms[self.liste_personnages[id_perso-1]][0])+")"),font=("Aqum two", 10),bg="#c14698")
 				self.label.pack()
 				self.f2.grid(row=ligne,column=colone,padx=3)
 
@@ -94,10 +96,10 @@ class Personnages():
 		for ligne in range(5):
 			for colone in range(8):
 				self.f2=Frame(self.frame,bg="#c14698")
-				self.liste_image.append(Image_perso(self.liste_personnages[id_perso],self.f2,self.choix))
+				self.liste_image.append(Image_perso(liste_noms[self.liste_personnages[id_perso]][1],self.f2,self.choix))
 				id_perso+=1
 				self.liste_image[id_perso-1].label_image().pack()
-				self.label = Label(self.f2,text=str(self.liste_personnages[id_perso-1])+str(" (F)"),font=("Aqum two", 10),bg="#c14698")
+				self.label = Label(self.f2,text=str(liste_noms[self.liste_personnages[id_perso-1]][1])+str(" ("+str(liste_noms[self.liste_personnages[id_perso-1]][0])+")"),font=("Aqum two", 10),bg="#c14698")
 				self.label.pack()
 				self.f2.grid(row=ligne,column=colone,padx=3)
 
@@ -176,24 +178,24 @@ class User_connect():
 			self.b.create_text(985,200,text="Joueur en attente...",font=("Aqum two", 17))
 			self.b.create_text(850,250,text="Joueur : ...",font=("Aqum two",15),anchor="nw")
 			self.b.create_text(850,310,text="IP : ...",font=("Aqum two",15),anchor="nw")
-			Label(jeu,text="En attente",font=("Aqum two",17)).place(x=169,y=438)
+			Label(jeu,text="En attente",font=("Aqum two",17)).place(x=169,y=404)
 			self.pseudo_enter = Entry(jeu,textvariable=self.pseudo,font=("Aqum two",13),width=14)
-			self.pseudo_enter.place(x=600,y=85)
+			self.pseudo_enter.place(x=600,y=79)
 			self.confirmer = Button(jeu,command=self.confirm,text="✓")
-			self.confirmer.place(x=770,y=86)
+			self.confirmer.place(x=770,y=80)
 		else:
 			self.b.pack_forget()
 			ip = extract_ip()
 			img=attente.background()
 			frame_ip_jouer = Canvas(jeu,width=1200,height=700)
 			frame_ip_jouer.create_image(600,350,image=img)
-			frame_ip_jouer.create_text(225,100,text="Votre IP : "+str(ip),font=("Aqum two", 17))
+			frame_ip_jouer.create_text(225,90,text="Votre IP : "+str(ip),font=("Aqum two", 17))
 			self.b = frame_ip_jouer
 			self.b.create_text(985,200,text="Joueur connecté ! ",font=("Aqum two", 17))
 			self.b.create_text(850,250,text="Joueur : "+str(self.pseudo),font=("Aqum two",15),anchor="nw")
 			self.b.create_text(850,310,text="IP : "+str(self.ip[0]),font=("Aqum two",15),anchor="nw")
-			Button(jeu,image=self.bouton,command=self.jouer).place(x=60,y=409)
-			self.pseudo_enter.place(x=600,y=85)
+			Button(jeu,image=self.bouton,command=self.jouer).place(x=60,y=370)
+			self.pseudo_enter.place(x=600,y=79)
 		self.b.pack()
 	def jouer(self):
 		self.b.pack_forget()
@@ -201,7 +203,7 @@ class User_connect():
 		perso.afficher_en_bouton()
 	def confirm(self):
 		self.confirmer.place_forget()
-		self.b.create_text(225,100,text="Votre IP : "+str(self.ip),font=("Aqum two", 17))
+		self.b.create_text(225,90,text="Votre IP : "+str(self.ip),font=("Aqum two", 17))
 		self.pseudo_enter.configure(state="disabled")
 		thread1.start()
 class Tchat():
@@ -274,14 +276,20 @@ class Join():
 
 def ecran_principal(principal):
 	principal.background()
-	Button(jeu,text="Jouer",font=("Aqum two",17),image=bouton,command=ecran_multi).pack()
-	Button(jeu,text="Jouer",font=("Aqum two",17),image=bouton1,command=ecran_join).pack()
+	f = Frame(jeu)
+	f.pack(side=BOTTOM)
+	Button(f,text="Jouer",font=("Aqum two",17),image=bouton,command=ecran_multi).pack(side=LEFT)
+	Button(f,text="Jouer",font=("Aqum two",17),image=bouton1,command=ecran_join).pack(side = LEFT)
 
 
 
 def ecran_jeu(choix,perso):
 	choix.background()
 	perso.afficher_en_bouton()
+
+ip_image=PhotoImage(file="assets/background_jeu/ip_d.png")
+pseudo_image=PhotoImage(file="assets/background_jeu/pseudo_d.png")
+image_rejoindre=PhotoImage(file="assets/background_jeu/bouton_jouer1.png")
 
 def ecran_join():
 	def client():
@@ -295,10 +303,18 @@ def ecran_join():
 	thread3 = threading.Thread(target=client)
 	choix.background()
 	ip = StringVar()
-	Entry(jeu,textvariable=ip).pack()
+	ip_frame = Frame(jeu)
+	ip_frame.pack(pady=60)
+	ip_label = Label(ip_frame,image=ip_image)
+	ip_label.pack()
+	Entry(ip_frame,textvariable=ip,font=("Aqum two", 11),width=26).place(x=55,y=38)
 	pseudo = StringVar()
-	Entry(jeu,textvariable=pseudo).pack()
-	Button(jeu,command=thread3.start).pack()
+	pseudo_frame = Frame(jeu)
+	pseudo_frame.pack(pady=60)
+	pseudo_label=Label(pseudo_frame,image= pseudo_image)
+	pseudo_label.pack()
+	Entry(pseudo_frame,textvariable=pseudo,width=21,font=("Aqum two", 11)).place(x=105,y=38)
+	Button(jeu,command=thread3.start,image=image_rejoindre).pack(pady=60)
 
 
 def ecran_multi():
@@ -400,9 +416,9 @@ def compile_image_perso(perso_name,list_arg):
     b=b.resize((512,512))
     b.save("assets/perso_fin/"+str(perso_name)+".png")
 
-
 class Gen_perso():
 	def __init__(self,liste_perso):
+		global liste_noms
 		self.relation = {"Bouche":[(1,3),(2,2),(3,1),(4,4),(5,2),(6,4),(7,2),(8,2),(9,1)],"Yeux":[(1,1),(2,2),(3,4),(4,2),(5,3),(6,3),(7,3),(8,5),(9,3),(10,3),(11,2),(12,5),(13,4),(14,2),(15,3),(16,3),(17,4),(18,5),(19,3),(20,2),(21,4),(22,5),(23,3)],"Visage":[(1,1),(2,2)],"Nez":[(1,1),(2,2),(3,2),(4,2),(5,2),(6,1),(7,1)],"Cosmetique":[(1,1),(2,2)],"Cheuveux":[(1,1),(2,3),(3,5),(4,2),(5,4),(6,2),(7,3),(8,1)],"Background":[(1,1),(2,1),(3,2),(4,2),(5,2),(6,3),(7,3),(8,3)],"Genre":[(1,1),(2,2)]}
 		self.liste_attribut = []
 		self.liste_attribut.append(Nb_attribut_list("cheuveux").liste)
@@ -446,7 +462,7 @@ class Gen_perso():
 		self.liste_attribut_total.append(self.dico_attribut["Cosmetique"][1])
 		self.liste_attribut_total.append(self.dico_attribut["Background"][1])
 		self.liste_attribut_total.append(self.dico_attribut["Genre"][1])
-		compile_image_perso(nb_perso,[self.dico_attribut["Cheuveux"][1],self.dico_attribut["Visage"][1],self.dico_attribut["Yeux"][1],self.dico_attribut["Nez"][1],self.dico_attribut["Bouche"][1],self.dico_attribut["Cosmetique"][1],self.dico_attribut["Background"][1]])
+		compile_image_perso(liste_noms[self.liste_perso[nb_perso-2]][1],[self.dico_attribut["Cheuveux"][1],self.dico_attribut["Visage"][1],self.dico_attribut["Yeux"][1],self.dico_attribut["Nez"][1],self.dico_attribut["Bouche"][1],self.dico_attribut["Cosmetique"][1],self.dico_attribut["Background"][1]])
 	def envoyer_liste(self):
 		self.liste_attribut_total = marshal.dumps(self.liste_attribut_total)
 		return self.liste_attribut_total
@@ -454,24 +470,59 @@ liste_personnages = []
 
 class Gen_perso_par_liste():
 	def __init__(self,liste):
+		global liste_noms
 		for perso in range(40):
-			compile_image_perso(perso+1,[liste[9*perso+1],liste[9*perso+2],liste[9*perso+3],liste[9*perso+4],liste[9*perso+5],liste[9*perso+6],liste[9*perso+7],liste[9*perso+8]])
+			print(liste_noms[liste[perso]])
+			compile_image_perso(liste_noms[liste[perso]],[liste[9*perso+1],liste[9*perso+2],liste[9*perso+3],liste[9*perso+4],liste[9*perso+5],liste[9*perso+6],liste[9*perso+7],liste[9*perso+8]])
 
 
 perso_reels = os.listdir("assets/perso_reel/")
 perso_reels_liste = []
 for perso_reel in perso_reels:
 	perso_reels_liste.append(perso_reel)
-for perso in range(1,41):
-	rand = randint(0,40)
-	if rand == 20:
-		shuffle(perso_reels_liste)
-		perso_choisi = perso_reels_liste[0]
-		perso_reels_liste.pop(0)
-		perso_choisi = perso_choisi.replace(".png","")
-		liste_personnages.append(perso_choisi)
+
+fichier_nom = open("bdd/liste_des_prenoms.csv")
+cr = csv.reader( fichier_nom,delimiter=";")
+
+with fichier_nom as f:
+    reader = csv.reader(f)
+    list_prenom = list(reader)
+liste_noms = [] 
+for c in list_prenom:
+	a = ''
+	for i in c:
+		a+=i
+	a = a.split(";")
+	a = a[1:4]
+	a.pop(1)
+	liste_noms.append(a)
+
+
+liste_perso_nom = []
+
+
+def generer_nom(liste_nom,liste_total):
+	if len(liste_total)==40:
+		return liste_total
 	else:
-		liste_personnages.append(perso)
+		nom = randint(1,len(liste_nom)-1)
+		liste_total.append(nom)
+		liste_nom.pop(nom)
+		return generer_nom(liste_nom,liste_total)
+
+
+
+for perso in range(1,41):
+	#rand = randint(0,40)
+	#if rand == 20:
+	#	shuffle(perso_reels_liste)
+	#	perso_choisi = perso_reels_liste[0]
+	#	perso_reels_liste.pop(0)
+	#	perso_choisi = perso_choisi.replace(".png","")
+	#	liste_personnages.append(perso_choisi)
+	#else:
+	#	liste_personnages.append(perso)
+	liste_personnages = generer_nom(liste_noms,[])
 print(liste_personnages)
 perso_creer = Gen_perso(liste_personnages)
 
