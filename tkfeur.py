@@ -1,19 +1,31 @@
 from tkinter import *
 from PIL import ImageFont,Image, ImageTk,ImageDraw,ImageFile
-import sqlite3
-import time
-import socket
-import pyglet, os
-import tkinter.font
+import sqlite3,shutil,time,socket,pyglet, os,tkinter.font,socket,threading,re,marshal,csv
 from tkinter import ttk
-import socket
 from socket import gethostbyname
-import threading
 from math import *
 from random import *
-import re
-import marshal
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+if os.path.exists("assets/perso_fin"):
+	perso_fin_dossier = os.listdir("assets/perso_fin")
+	for i in perso_fin_dossier:
+		if os.path.exists("assets/perso_fin/"+str(i)):
+			os.remove("assets/perso_fin/"+str(i))
+	os.rmdir("assets/perso_fin")
+	os.makedirs("assets/perso_fin")
+else:
+	os.makedirs("assets/perso_fin")
+
+if os.path.exists("assets/perso_fini"):
+	perso_fini_dossier = os.listdir("assets/perso_fini")
+	for i in perso_fini_dossier:
+		if os.path.exists("assets/perso_fini/"+str(i)):
+			os.remove("assets/perso_fini/"+str(i))
+	os.rmdir("assets/perso_fini")
+	os.makedirs("assets/perso_fini")
+else:
+	os.makedirs("assets/perso_fini")
 
 jeu = Tk()
 jeu.geometry("1200x700")
@@ -74,6 +86,8 @@ class Image_perso():
 
 class Personnages():
 	def __init__(self,liste_personnages,fenetre,choix):
+		global liste_prenom_sexe
+		self.liste_prenom_sexe = liste_prenom_sexe
 		self.liste_personnages = liste_personnages
 		self.frame = Frame(fenetre,bg="#c14698")
 		self.liste_image = []
@@ -83,7 +97,7 @@ class Personnages():
 	def afficher_en_bouton(self):
 		id_perso = 0
 		self.frame.pack_forget()
-		self.frame=Frame(jeu,bg="#c14698")
+		self.frame = Frame(jeu,bg="#c14698")
 		self.frame.pack(padx=90,pady=90)
 		for ligne in range(5):
 			for colone in range(8):
@@ -91,7 +105,10 @@ class Personnages():
 				self.liste_image.append(Image_perso(self.liste_personnages[id_perso],self.f2,self.choix))
 				id_perso+=1
 				self.liste_image[id_perso-1].bouton_image().pack()
-				self.label = Label(self.f2,text=str(self.liste_personnages[id_perso-1])+str(" (F)"),font=("Aqum two", 10),bg="#c14698")
+				if type(self.liste_personnages[id_perso-1]) != type(str()):
+					self.label = Label(self.f2,text=str(self.liste_prenom_sexe[self.liste_personnages[id_perso-1]][1])+" ("+str(self.liste_prenom_sexe[self.liste_personnages[id_perso-1]][0])+")",font=("Aqum two", 10),bg="#c14698")
+				else:
+					self.label = Label(self.f2,text=str(self.liste_personnages[id_perso-1])+" (M)",font=("Aqum two", 10),bg="#c14698")
 				self.label.pack()
 				self.f2.grid(row=ligne,column=colone,padx=3)
 
@@ -107,10 +124,12 @@ class Personnages():
 				self.liste_image.append(Image_perso(self.liste_personnages[id_perso],self.f2,self.choix))
 				id_perso+=1
 				self.liste_image[id_perso-1].bouton_image2().pack()
-				self.label = Label(self.f2,text=str(self.liste_personnages[id_perso-1])+str(" (F)"),font=("Aqum two", 10),bg="#c14698")
+				if type(self.liste_personnages[id_perso-1]) != type(str()):
+					self.label = Label(self.f2,text=str(self.liste_prenom_sexe[self.liste_personnages[id_perso-1]][1])+" ("+str(self.liste_prenom_sexe[self.liste_personnages[id_perso-1]][0])+")",font=("Aqum two", 10),bg="#c14698")
+				else:
+					self.label = Label(self.f2,text=str(self.liste_personnages[id_perso-1])+" (M)",font=("Aqum two", 10),bg="#c14698")
 				self.label.pack()
 				self.f2.grid(row=ligne,column=colone,padx=3)
-
 
 
 
@@ -186,7 +205,7 @@ class User_connect():
 			self.b.create_text(985,200,text="Joueur en attente...",font=("Aqum two", 17))
 			self.b.create_text(850,250,text="Joueur : ...",font=("Aqum two",15),anchor="nw")
 			self.b.create_text(850,310,text="IP : ...",font=("Aqum two",15),anchor="nw")
-			Label(jeu,text="En attente",font=("Aqum two",17)).place(x=169,y=404) 
+			self.b.create_text(227,417,text="En attente",font=("Aqum two",17))
 			self.pseudo_enter = Entry(jeu,textvariable=self.pseudo,font=("Aqum two",13),width=14)
 			self.pseudo_enter.place(x=600,y=79) 
 			self.confirmer = Button(jeu,command=self.confirm,text="✓")
@@ -245,6 +264,7 @@ bouton=PhotoImage(file=r"assets/background_jeu/bouton_jouer.png")
 bouton1=PhotoImage(file=r"assets/background_jeu/bouton_jouer1.png")
 
 def make_perso(liste_perso):
+	global perso
 	perso =Personnages(liste_perso,jeu,choix)
 	return perso
 
@@ -351,7 +371,7 @@ def join_server():
 
 bdd = sqlite3.connect("bdd/perso.db")
 curseur = bdd.cursor()
-
+curseur.execute("""DELETE FROM Persos WHERE prenom != "Daniel" AND prenom != "Frank" AND prenom != "Yavan" AND prenom != "Remi" AND prenom != "Valentin" """)
 
 class Nb_attribut_list():
 	def __init__(self,nom):
@@ -436,14 +456,15 @@ class Gen_perso():
 		self.liste_attribut.append(Nb_attribut_list("genre").liste)
 		self.liste_perso = liste_perso
 		self.liste_attribut_total = []
+		self.requete = ("""INSERT INTO Persos VALUES """)
 		
-		for perso in range(1,len(self.liste_perso)+1):
-			print(perso)
+		for perso in range(1,41):
 			self.generer_attribut_personnage(perso)
 		print(len(self.liste_attribut_total))
-		print(Gen_perso_par_liste(self.liste_attribut_total))
 	def generer_attribut_personnage(self,nb_perso):
+		global liste_prenom_sexe, curseur,bdd
 		self.dico_attribut = {"Cheuveux" : None,"Visage":None,"Yeux":None,"Nez":None,"Bouche":None,"Cosmetique":None,"Background":None,"Genre":None}
+		liste_append_bdd = []
 		for l_attribut_simple in self.liste_attribut:
 			for indice in range(1,len(l_attribut_simple)):
 				random_attribut_list = []
@@ -455,8 +476,13 @@ class Gen_perso():
 								shuffle(random_attribut_list)
 						l_attribut_simple[indice][2].pop(0)
 						self.dico_attribut[l_attribut_simple[0]] = (l_attribut_simple[indice][0],random_attribut_list[0])
+						liste_append_bdd.append(l_attribut_simple[indice][1])
 				except:
 					None
+		if type(self.liste_perso[nb_perso-1]) != type(str()):
+			liste_append_bdd.append(liste_prenom_sexe[self.liste_perso[nb_perso-1]][1])
+			curseur.execute(self.requete+"("+"1,"+str(liste_append_bdd[0])+","+str(liste_append_bdd[1])+","+str(liste_append_bdd[2])+","+str(liste_append_bdd[3])+","+str(liste_append_bdd[4])+","+str(liste_append_bdd[5])+","+str(liste_append_bdd[6])+","+str(liste_append_bdd[7])+',"'+str(liste_append_bdd[8])+'")')
+		bdd.commit()
 		random_attribute = []
 		self.liste_attribut_total.append(self.liste_perso[nb_perso-1])
 		self.liste_attribut_total.append(self.dico_attribut["Cheuveux"][1])
@@ -467,7 +493,8 @@ class Gen_perso():
 		self.liste_attribut_total.append(self.dico_attribut["Cosmetique"][1])
 		self.liste_attribut_total.append(self.dico_attribut["Background"][1])
 		self.liste_attribut_total.append(self.dico_attribut["Genre"][1])
-		compile_image_perso(nb_perso,[self.dico_attribut["Cheuveux"][1],self.dico_attribut["Visage"][1],self.dico_attribut["Yeux"][1],self.dico_attribut["Nez"][1],self.dico_attribut["Bouche"][1],self.dico_attribut["Cosmetique"][1],self.dico_attribut["Background"][1]])
+		if type(self.liste_perso[nb_perso-1]) != type(str()):
+			compile_image_perso(self.liste_perso[nb_perso-1],[self.dico_attribut["Cheuveux"][1],self.dico_attribut["Visage"][1],self.dico_attribut["Yeux"][1],self.dico_attribut["Nez"][1],self.dico_attribut["Bouche"][1],self.dico_attribut["Cosmetique"][1],self.dico_attribut["Background"][1]])
 	def envoyer_liste(self):
 		self.liste_attribut_total = marshal.dumps(self.liste_attribut_total)
 		return self.liste_attribut_total
@@ -476,24 +503,62 @@ liste_personnages = []
 class Gen_perso_par_liste():
 	def __init__(self,liste):
 		for perso in range(40):
-			compile_image_perso(perso+1,[liste[9*perso+1],liste[9*perso+2],liste[9*perso+3],liste[9*perso+4],liste[9*perso+5],liste[9*perso+6],liste[9*perso+7],liste[9*perso+8]])
+			if type(liste[9*perso]) != type(str()):
+				compile_image_perso(liste[9*perso],[liste[9*perso+1],liste[9*perso+2],liste[9*perso+3],liste[9*perso+4],liste[9*perso+5],liste[9*perso+6],liste[9*perso+7],liste[9*perso+8]])
 
 
+fichier_nom = open("bdd/liste_des_prenoms.csv")
+cr = csv.reader( fichier_nom,delimiter=";")
+
+with fichier_nom as f:
+    reader = csv.reader(f)
+    list_prenom = list(reader)
+liste_prenom_sexe = [] 
+for c in list_prenom:
+	a = ''
+	for i in c:
+		a+=i
+	a = a.split(";")
+	a = a[1:4]
+	a.pop(1)
+	liste_prenom_sexe.append(a)
+
+liste_prenom_sexe1= liste_prenom_sexe[0:]
+
+liste_random = []
 perso_reels = os.listdir("assets/perso_reel/")
 perso_reels_liste = []
 for perso_reel in perso_reels:
+	shutil.copy2("assets/perso_reel/"+str(perso_reel),"assets/perso_fin")
+	shutil.copy2("assets/perso_reel/"+str(perso_reel),"assets/perso_fini")
 	perso_reels_liste.append(perso_reel)
-for perso in range(1,41):
-	rand = randint(0,40)
-	if rand == 20 or rand == 21:
-		shuffle(perso_reels_liste)
-		perso_choisi = perso_reels_liste[0]
-		perso_reels_liste.pop(0)
-		perso_choisi = perso_choisi.replace(".png","")
-		liste_personnages.append(perso_choisi)
+
+def generer_nom(liste_nom,liste_total,liste_noms_reel):
+	if len(liste_total)==40:
+		for i in liste_noms_reel:
+			i = i.replace(".png","")
+			print('UPDATE Persos SET choisi = 0 WHERE prenom = "'+str(i)+'"')
+			curseur.execute('UPDATE Persos SET choisi = 0 WHERE prenom = "'+str(i)+'"')
+			bdd.commit()
+		return liste_total
 	else:
-		liste_personnages.append(perso)
-print(liste_personnages)
+		rand = randint(0,40)
+		if (rand == 20 or rand == 21) and len(liste_noms_reel) !=0:
+			shuffle(liste_noms_reel)
+			perso_choisi = liste_noms_reel[0]
+			liste_noms_reel.pop(0)
+			perso_choisi = perso_choisi.replace(".png","")
+			liste_total.append(perso_choisi)
+			curseur.execute('UPDATE Persos SET choisi = 1 WHERE prenom = "'+str(perso_choisi)+'"')
+			return generer_nom(liste_nom,liste_total,liste_noms_reel)
+		else:
+			nom = randint(1,len(liste_nom)-1)
+			liste_total.append(nom)
+			liste_nom.pop(nom)
+			return generer_nom(liste_nom,liste_total,liste_noms_reel)
+
+
+liste_personnages = generer_nom(liste_prenom_sexe1,[],perso_reels_liste)
 perso_creer = Gen_perso(liste_personnages)
 
 choix = Background("background",jeu)
@@ -502,10 +567,35 @@ attente = Background("IP",jeu)
 user_connection = User_connect(None)
 principal = Background("background3",jeu)
 
+print(curseur.execute("SELECT prenom FROM Persos").fetchall())
+pers = input("> ")
+caract = curseur.execute("SELECT * FROM Persos WHERE prenom ='"+str(pers)+"'").fetchall()
+print(caract)
+dico_attribut_perso_choisi = {"idCheuveux":caract[0][1],"idVisage" : caract[0][2],"idYeux" : caract[0][3],"idNez" : caract[0][4],"idBouche" : caract[0][5],"idCosmetique" : caract[0][6],"idBackground" : caract[0][7],"idGenre":caract[0][8],"prenom" :caract[0][9]}
+for i in dico_attribut_perso_choisi.keys():
+	print(i,dico_attribut_perso_choisi[i])
+while True:
+	table = input("table : ")
+	idt = input("color : ")
+	try:
+		caractere = curseur.execute("SELECT id"+str(table)+" FROM "+str(table)+" WHERE type ='"+str(idt)+"'").fetchall()[0][0]
+		if dico_attribut_perso_choisi["id"+str(table)] == caractere:
+			a = "UPDATE Persos SET choisi = 0 WHERE id"+str(table)+" !="+str(caractere)
+			curseur.execute(a)
+			b = "SELECT prenom FROM Persos WHERE choisi = 1"
+			print(curseur.execute(b).fetchall())
+		else:
+			a = "UPDATE Persos SET choisi = 0 WHERE id"+str(table)+" =="+str(caractere)
+			curseur.execute(a)
+			b = "SELECT prenom FROM Persos WHERE choisi = 1"
+			print(curseur.execute(b).fetchall())
+	finally:
+		None
 
-def ecran(choix,perso,principal):
-	attente = Background("IP",jeu)
-	ecran_principal(principal)
+
+#def ecran(choix,perso,principal):
+	#attente = Background("IP",jeu)
+	#ecran_principal(principal)
 	#ecran_jeu(choix,perso)
 
 thread1 = threading.Thread(target=setup_server)
