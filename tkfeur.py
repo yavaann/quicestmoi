@@ -1,6 +1,6 @@
 from tkinter import *
 from PIL import ImageFont,Image, ImageTk,ImageDraw,ImageFile
-import sqlite3,shutil,time,socket,pyglet, os,tkinter.font,socket,threading,re,marshal,csv
+import sqlite3,shutil,time,socket,pyglet, os,tkinter.font,socket,threading,re,marshal,csv,time
 from tkinter import ttk
 from socket import gethostbyname
 from math import *
@@ -30,6 +30,7 @@ else:
 jeu = Tk()
 jeu.geometry("1200x700")
 jeu.title("Ki c moi?")
+jeu.iconbitmap("assets/logo.ico")
 jeu.resizable(False,False)
 serv_or_join = None
 class Background():
@@ -53,46 +54,58 @@ class Background():
 		background.place(x=-2,y=-2,in_=self.fenetre)
 		self.affiche = True
 		return self.img
-
+pers = StringVar()
 
 
 class Image_perso():
-	def __init__(self,nom,fenetre,choix):
+	def __init__(self,nom,fenetre,choix,serv):
 		self.nom = nom
 		self.image = Image.open("assets/perso_fin/"+str(self.nom)+".png")
 		self.image = self.image.resize((75,75))
 		self.image.save("assets/perso_fini/"+str(nom)+".png")
 		self.img = ImageTk.PhotoImage(file="assets/perso_fini/"+str(nom)+".png")
 		self.bouton = Button(fenetre,image=self.img,command=self.clic,bg="#c14698",bd=0,activebackground="#852563")
-		self.bouton2 = Button(fenetre,image=self.img,command=self.clic2,bg="#c14698",bd=0,activebackground="#852563")
 		self.labelimg = Label(fenetre,image=self.img,bg="#c14698")
 		self.choix = choix
 		self.fenetre = fenetre
+		self.serveur = serv
 	def bouton_image(self):
 		return self.bouton
-	def bouton_image2(self):
-		return self.bouton2
+	def label_image(self):
+		return self.labelimg
 	def clic(self):
+		global liste_prenom_sexe
+		if self.serveur !=None:
+			self.serveur.envoyer_packet(self.nom,None)
 		jeu_ecran(self.choix)
 	def clic2(self):
 		timage = Image.open("assets/background_jeu/arriere.png")
 		timage = timage.resize((75,75))
 		timage.save("assets/perso_fin/"+str(self.nom)+".png")
 		self.img = ImageTk.PhotoImage(file="assets/perso_fini/"+str(self.nom)+".png")
-		jeu_ecran(self.choix)
 	def label_image(self):
 		return self.labelimg
 
 
+table_choisi = StringVar()
+attriut_choisi = StringVar()
+
 class Personnages():
-	def __init__(self,liste_personnages,fenetre,choix):
-		global liste_prenom_sexe
+	def __init__(self,liste_personnages,fenetre,choix,serveur):
+		global liste_prenom_sexe,bdd,curseur
+		bdd = sqlite3.connect("bdd/perso.db", check_same_thread=False)
+		curseur = bdd.cursor()
 		self.liste_prenom_sexe = liste_prenom_sexe
 		self.liste_personnages = liste_personnages
 		self.frame = Frame(fenetre,bg="#c14698")
 		self.liste_image = []
 		self.f2 = Frame(fenetre,bg="#c14698")
 		self.choix = choix
+		self.pers = ""
+		self.oui_non = StringVar()
+		self.oui_non.set("Réponse : ")
+		self.nom_entry = StringVar()
+		self.serveur = None
 
 	def afficher_en_bouton(self):
 		id_perso = 0
@@ -101,12 +114,17 @@ class Personnages():
 		self.frame.pack(padx=90,pady=90)
 		for ligne in range(5):
 			for colone in range(8):
+				if type(self.liste_personnages[id_perso]) != type(str()):
+					if len(self.liste_prenom_sexe[self.liste_personnages[id_perso]][1]) >=8:
+						self.taille = 7
+					else:
+						self.taille = 10
 				self.f2=Frame(self.frame,bg="#c14698")
-				self.liste_image.append(Image_perso(self.liste_personnages[id_perso],self.f2,self.choix))
+				self.liste_image.append(Image_perso(self.liste_personnages[id_perso],self.f2,self.choix,self.serveur))
 				id_perso+=1
 				self.liste_image[id_perso-1].bouton_image().pack()
 				if type(self.liste_personnages[id_perso-1]) != type(str()):
-					self.label = Label(self.f2,text=str(self.liste_prenom_sexe[self.liste_personnages[id_perso-1]][1])+" ("+str(self.liste_prenom_sexe[self.liste_personnages[id_perso-1]][0])+")",font=("Aqum two", 10),bg="#c14698")
+					self.label = Label(self.f2,text=str(self.liste_prenom_sexe[self.liste_personnages[id_perso-1]][1])+" ("+str(self.liste_prenom_sexe[self.liste_personnages[id_perso-1]][0])+")",font=("Aqum two", self.taille),bg="#c14698")
 				else:
 					self.label = Label(self.f2,text=str(self.liste_personnages[id_perso-1])+" (M)",font=("Aqum two", 10),bg="#c14698")
 				self.label.pack()
@@ -116,22 +134,128 @@ class Personnages():
 		id_perso = 0
 		self.frame.pack_forget()
 		self.frame = Frame(jeu,bg="#c14698")
-		self.frame.pack(side=LEFT,padx=50,pady=50)
+		self.frame.pack(side=LEFT,padx=10,pady=10)
 		self.liste_image = []
 		for ligne in range(5):
 			for colone in range(8):
+				if type(self.liste_personnages[id_perso]) != type(str()):
+					if len(self.liste_prenom_sexe[self.liste_personnages[id_perso]][1]) >=8:
+						self.taille = 7
+						print(self.liste_prenom_sexe[self.liste_personnages[id_perso]][1],len(self.liste_prenom_sexe[self.liste_personnages[id_perso]][1]),self.taille)
+					else:
+						self.taille = 10
 				self.f2=Frame(self.frame,bg="#c14698")
-				self.liste_image.append(Image_perso(self.liste_personnages[id_perso],self.f2,self.choix))
+				self.liste_image.append(Image_perso(self.liste_personnages[id_perso],self.f2,self.choix,self.serveur))
 				id_perso+=1
-				self.liste_image[id_perso-1].bouton_image2().pack()
+				self.liste_image[id_perso-1].label_image().pack()
 				if type(self.liste_personnages[id_perso-1]) != type(str()):
-					self.label = Label(self.f2,text=str(self.liste_prenom_sexe[self.liste_personnages[id_perso-1]][1])+" ("+str(self.liste_prenom_sexe[self.liste_personnages[id_perso-1]][0])+")",font=("Aqum two", 10),bg="#c14698")
+					self.label = Label(self.f2,text=str(self.liste_prenom_sexe[self.liste_personnages[id_perso-1]][1])+" ("+str(self.liste_prenom_sexe[self.liste_personnages[id_perso-1]][0])+")",font=("Aqum two", self.taille),bg="#c14698")
 				else:
 					self.label = Label(self.f2,text=str(self.liste_personnages[id_perso-1])+" (M)",font=("Aqum two", 10),bg="#c14698")
 				self.label.pack()
 				self.f2.grid(row=ligne,column=colone,padx=3)
+		self.combobox_table = ttk.Combobox(jeu,textvariable=table_choisi,values=("Background","Bouche","Cheuveux","Cosmetique","Genre","Nez","Visage","Yeux"),state = 'readonly',postcommand=lambda: self.combobox_attribut.configure(values=attriut_table()))
+		self.combobox_attribut = ttk.Combobox(jeu,textvariable=attriut_choisi,values=attriut_table(),state="readonly")
+		self.combobox_attribut.place(x=770,y=170)
+		self.combobox_table.place(x=770,y=130)
+		self.bouton_choix = Button(jeu,text="Rechercher",command=self.chercher)
+		self.bouton_choix.place(x=770,y=250)
+		self.label_oui=Label(jeu,textvariable=self.oui_non)
+		self.label_oui.place(x=770,y=210)
+		self.entry_nom = Entry(jeu,textvariable=self.nom_entry)
+		self.entry_nom.place(x=770,y=290)
+		self.rechercher_nom=Button(jeu,text="Rechercher par nom",command=self.chercher)
+		self.rechercher_nom.place(x=770,y=330)
 
+	def chercher(self):
+		global liste_prenom_sexe
+		gagne = False
+		caract = curseur.execute("SELECT * FROM Persos WHERE prenom ='"+str(pers.get().title())+"'").fetchall()
+		dico_attribut_perso_choisi = {"idCheuveux":caract[0][1],"idVisage" : caract[0][2],"idYeux" : caract[0][3],"idNez" : caract[0][4],"idBouche" : caract[0][5],"idCosmetique" : caract[0][6],"idBackground" : caract[0][7],"idGenre":caract[0][8],"prenom" :caract[0][9].title()}
+		try:
+			table = table_choisi.get()
+			idt = attriut_choisi.get()
+			if self.nom_entry.get()!="":
+				table="prenom"
+				idt = self.nom_entry.get().title()
+				if dico_attribut_perso_choisi[str(table)].title() == idt:
+					a = "UPDATE Persos SET choisi = 0 WHERE "+str(table)+" !='"+str(idt.title())+"'"
+					print(a)
+					curseur.execute(a)
+					curseur.execute("UPDATE Persos SET choisi =1 WHERE "+str(table)+" =='"+str(idt.title())+"'")
+					b = "SELECT prenom FROM Persos WHERE choisi = 1"
+					self.b = curseur.execute(b).fetchall()
+					print(self.b)
+					self.change()
+				else:
+					a = "UPDATE Persos SET choisi = 0 WHERE "+str(table)+" =='"+str(idt.title())+"'"
+					curseur.execute(a)
+					print(a)
+					b = "SELECT prenom FROM Persos WHERE choisi = 1"
+					self.b = curseur.execute(b).fetchall()
+					self.change()
+					print(self.b)
+				self.nom_entry.set("")
+			else:
+				caractere = curseur.execute("SELECT id"+str(table)+" FROM "+str(table)+" WHERE type ='"+str(idt)+"'").fetchall()[0][0]
+				if dico_attribut_perso_choisi["id"+str(table)] == caractere:
+					self.oui_non.set("Réponse : Oui")
+					a = "UPDATE Persos SET choisi = 0 WHERE id"+str(table)+" !="+str(caractere)
+					curseur.execute(a)
+					curseur.execute("UPDATE Persos SET choisi =1 WHERE prenom =='"+str(dico_attribut_perso_choisi["prenom"])+"'")
+					b = "SELECT prenom FROM Persos WHERE choisi = 1"
+					self.b = curseur.execute(b).fetchall()
+					self.change()
+				else:
+					self.oui_non.set("Réponse : Non")
+					a = "UPDATE Persos SET choisi = 0 WHERE id"+str(table)+" =="+str(caractere)
+					curseur.execute(a)
+					b = "SELECT prenom FROM Persos WHERE choisi = 1"
+					self.b = curseur.execute(b).fetchall()
+					self.change()
+			if len(self.b) == 1:
+				for widget in jeu.winfo_children():
+					widget.pack_forget()
+					widget.place_forget()
+				choix.background()
+				txt="Vous avez gagné c'était "+pers.get()
+				Label(jeu,text=txt,font=("Aqum two", 25),bg="#c14698").place(x=380,y=310)
+				gagne = True
+		finally:
+			if self.serveur !=None:
+				self.label_oui.configure(textvariable=self.oui_non)
+				self.combobox_table.place_forget()
+				self.combobox_attribut.place_forget()
+				self.bouton_choix.place_forget()
+				self.entry_nom.place_forget()
+				self.rechercher_nom.place_forget()
+				if gagne == False:
+					self.serveur.envoyer_packet(None,"a")
+				else:
+					self.serveur.envoyer_packet(None,"g")
+	def change(self):
+		perso_list = []
+		for i in self.b:
+			perso_list.append(i[0].title())
+		for i in range(40):
+			if type(self.liste_personnages[i])==type(int()):
+				if liste_prenom_sexe[self.liste_personnages[i]][1] not in perso_list:
+					self.liste_image[i].clic2()
+			else:
+				if self.liste_personnages[i].title() not in perso_list:
+					self.liste_image[i].clic2()
+		jeu_ecran(self.choix)
 
+def attriut_table():
+	global curseur
+	try:
+		att = curseur.execute("SELECT type FROM "+str(table_choisi.get())).fetchall()
+		a = []
+		for i in att:
+			a.append(i[0])
+		return a
+	except:
+		return None
 
 def extract_ip():
     st = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -148,39 +272,63 @@ def extract_ip():
 
 class Serveur():
 	def __init__(self):
-		global serv_or_join
+		global serv_or_join,perso
 		serv_or_join = "serv"
+		print("strar")
+		print(perso.liste_image)
+		perso.serveur = self
 		self.pseudo = user_connection.pseudo.get()
-		print(self.pseudo)
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.server_address = (gethostbyname(str(extract_ip())), 6969)
-		print("c'est good")
 		self.sock.bind(self.server_address)
 		self.sock.listen(1)
-		print('Waiting for a connection')
-		print(self.sock)
 		self.connection, self.client_address = self.sock.accept()
 	def recevoir_packet(self):
+		global perso
 		try:
 		    while True:
 		        data = self.connection.recv(8096)
+		        print(data.decode("utf-8"))
 		        if data.decode("utf-8")[0] == "t":
 		        	tchat.tchat.configure(state='normal')
 		        	tchat.tchat.insert(END,data.decode("utf-8")[1:])
 		        	tchat.tchat.configure(state='disabled')
+		        if data.decode("utf-8")[0] == "c":
+		        	pers.set(data.decode("utf-8")[1:])
+		        if data.decode("utf-8")[0]=="a":
+		        	perso.afficher_label()
+		        if data.decode("utf-8")[0]=="g":
+		        	time.sleep(1)
+		        	for widget in jeu.winfo_children():
+		        		widget.pack_forget()
+		        		widget.place_forget()
+		        	choix.background()
+		        	txt="Vous avez perdu c'était "+pers.get()
+		        	Label(jeu,text=txt,font=("Aqum two", 25),bg="#c14698").place(x=380,y=310)
 		        break
 		except:
 		    None
-	def envoyer_packet(self):
+	def envoyer_packet(self,perso_name,requete):
 		try:
+			if perso_name != None:
+				self.perso_name=perso_name
 			if tchat.message.get()!="":
 				message = "t"+self.pseudo+" : "+tchat.message.get()+str("\n")
 				self.connection.sendall(message.encode("utf-8"))
+			if type(perso_name) ==type(int()):
+				packet = "c"+liste_prenom_sexe[perso_name][1]
+				self.connection.sendall(packet.encode("utf-8"))
+			elif type(perso_name) == type(str()):
+				packet = "c"+perso_name
+				self.connection.sendall(packet.encode("utf-8"))
+			if requete !=None:
+				packet=requete
+				self.connection.sendall(packet.encode("utf-8"))
 		finally:
 			None
 	def connect(self):
+		global perso
 		user_connection.ip = self.client_address
-		print(self.client_address)
 		data = self.connection.recv(8096)
 		user_connection.pseudo = data.decode("utf-8")
 		user_connection.afficher()
@@ -252,20 +400,23 @@ class Tchat():
 		self.bouton=Button(self.frame,text="Envoyer",bg="#852563",activebackground="#c14698",command=self.envoyer)
 		self.bouton.pack(side=LEFT,fill=BOTH,expand=True)
 	def envoyer(self):
-		print(self.serveur)
-		if self.message !="":
+		if self.message.get() !="":
 			tchat.tchat.configure(state='normal')
 			self.tchat.insert(END,"Moi : "+self.message.get()+str("\n"))
 			tchat.tchat.configure(state='disable')
-			self.serveur.envoyer_packet()
+			self.serveur.envoyer_packet(None,None)
 		self.message.set("")
 
 bouton=PhotoImage(file=r"assets/background_jeu/bouton_jouer.png")
 bouton1=PhotoImage(file=r"assets/background_jeu/bouton_jouer1.png")
+bouton2=PhotoImage(file=r"assets/background_jeu/bouton_jouer2.png")
 
-def make_perso(liste_perso):
+def make_perso(liste_perso,serveur):
 	global perso
-	perso =Personnages(liste_perso,jeu,choix)
+	print(serveur)
+	perso =Personnages(liste_perso,jeu,choix,serveur)
+	perso.serveur = serveur
+	print(perso.serveur)
 	return perso
 
 class Join():
@@ -275,7 +426,6 @@ class Join():
 		self.pseudo = pseudo
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.server_address = (ip, 6969)
-		print('Connecting to {} port {}'.format(*self.server_address))
 		self.sock.connect(self.server_address)
 		self.sock.sendall(pseudo.encode("utf-8"))
 		data = self.sock.recv(8096)
@@ -284,30 +434,54 @@ class Join():
 		liste_perso = []
 		for i in range(40):
 			liste_perso.append(data[i*9])
-		print(liste_perso)
-		self.perso = make_perso(liste_perso)
+		self.perso = make_perso(liste_perso,self)
 		choix.background()
 		self.perso.afficher_en_bouton()
 	def recevoir_packet(self):
-	    while True:
-	    	data = self.sock.recv(8096)
-	    	if data.decode("utf-8")[0] == "t":
-	    		tchat.tchat.configure(state="normal")
-	    		tchat.tchat.insert(END,data.decode("utf-8")[1:])
-	    		tchat.tchat.configure(state="disabled")
-	def envoyer_packet(self):
+		global perso
+		while True:
+			data = self.sock.recv(8096)
+			print(data.decode("utf-8"))
+			if data.decode("utf-8")[0] == "t":
+				tchat.tchat.configure(state="normal")
+				tchat.tchat.insert(END,data.decode("utf-8")[1:])
+				tchat.tchat.configure(state="disabled")
+			if data.decode("utf-8")[0] == "c":
+				pers.set(data.decode("utf-8")[1:])
+			if data.decode("utf-8")[0]=="a":
+				perso.afficher_label()
+			if data.decode("utf-8")[0]=="g":
+				for widget in jeu.winfo_children():
+					widget.pack_forget()
+					widget.place_forget()
+				choix.background()
+				txt="Vous avez perdu c'était "+pers.get()	
+				Label(jeu,text=txt,font=("Aqum two", 25),bg="#c14698").place(x=380,y=310)
+
+	def envoyer_packet(self,perso,requete):
 		if tchat.message.get()!="":
 			message = "t"+self.pseudo+" : "+tchat.message.get()+str("\n")
 			self.sock.sendall(message.encode("utf-8"))
+		if type(perso) ==type(int()):
+			packet = "c"+liste_prenom_sexe[perso][1]
+			self.sock.sendall(packet.encode("utf-8"))
+		elif type(perso) == type(str()):
+			packet = "c"+perso
+			self.sock.sendall(packet.encode("utf-8"))
+		if requete!=None:
+			packet=requete
+			self.sock.sendall(packet.encode("utf-8"))
+
 
 
 
 def ecran_principal(principal):
 	principal.background()
 	f = Frame(jeu) 
-	f.pack(side=BOTTOM) 
+	f.pack(side=BOTTOM,pady=5) 
 	Button(f,text="Jouer",font=("Aqum two",17),image=bouton,command=ecran_multi).pack(side=LEFT) 
-	Button(f,text="Jouer",font=("Aqum two",17),image=bouton1,command=ecran_join).pack(side = LEFT) 
+	Button(f,text="Jouer",font=("Aqum two",17),image=bouton1,command=ecran_join).pack(side = LEFT)
+	Button(f,text="Jouer en solo",font=("Aqum two",17),image=bouton2,command=jeu_solo).pack(side=LEFT) 
 
 ip_image=PhotoImage(file="assets/background_jeu/ip_d.png") 
 pseudo_image=PhotoImage(file="assets/background_jeu/pseudo_d.png") 
@@ -319,9 +493,13 @@ def ecran_jeu(choix,perso):
 
 def ecran_join():
 	def client():
+		global perso,serv
 		if ip.get() != "" and pseudo.get() != "":
+			curseur.execute("""DELETE FROM Persos WHERE prenom != "Daniel" AND prenom != "Frank" AND prenom != "Yavan" AND prenom != "Remi" AND prenom != "Valentin" """)
+
 			serv = Join(pseudo.get(),ip.get())
 			tchat.serveur = serv
+			perso.serveur = serv
 			while True:
 				serv.recevoir_packet()
 	for widget in jeu.winfo_children():
@@ -356,11 +534,27 @@ def jeu_ecran(choix):
 	perso.afficher_label()
 	tchat.afficher()	
 
+def jeu_solo():
+	global liste_prenom_sexe
+	for widget in jeu.winfo_children():
+		widget.pack_forget()
+		widget.place_forget()
+	liste_perso = perso.liste_personnages[0:]
+	shuffle(liste_perso)
+	if type(liste_perso[0]) == type(str()):
+		pers.set(liste_perso[0])
+	else:
+		pers.set(liste_prenom_sexe[liste_perso[0]][1])
+	print(pers.get())
+	choix.background()
+	perso.afficher_label()
 
 def setup_server():
-	global tchat
+	global tchat,perso,serveur
 	serveur = Serveur()
 	tchat.serveur = serveur
+	print("Oui")
+	perso.serveur = serveur
 	serveur.connect()
 	while True:
 		serveur.recevoir_packet()
@@ -369,7 +563,7 @@ def join_server():
 	global tchat
 	serv = Join(None)
 
-bdd = sqlite3.connect("bdd/perso.db")
+bdd = sqlite3.connect("bdd/perso.db", check_same_thread=False)
 curseur = bdd.cursor()
 curseur.execute("""DELETE FROM Persos WHERE prenom != "Daniel" AND prenom != "Frank" AND prenom != "Yavan" AND prenom != "Remi" AND prenom != "Valentin" """)
 
@@ -460,9 +654,8 @@ class Gen_perso():
 		
 		for perso in range(1,41):
 			self.generer_attribut_personnage(perso)
-		print(len(self.liste_attribut_total))
 	def generer_attribut_personnage(self,nb_perso):
-		global liste_prenom_sexe, curseur,bdd
+		global liste_prenom_sexe
 		self.dico_attribut = {"Cheuveux" : None,"Visage":None,"Yeux":None,"Nez":None,"Bouche":None,"Cosmetique":None,"Background":None,"Genre":None}
 		liste_append_bdd = []
 		for l_attribut_simple in self.liste_attribut:
@@ -502,11 +695,34 @@ liste_personnages = []
 
 class Gen_perso_par_liste():
 	def __init__(self,liste):
+		global liste_prenom_sexe
+		self.requete = ("""INSERT INTO Persos VALUES """)
+		self.liste_attribut = ["Cheuveux","Visage","Yeux","Nez","Bouche","Cosmetique","Background","Genre","prenom"]
+		self.relation = {"Bouche":[(1,3),(2,2),(3,1),(4,4),(5,2),(6,4),(7,2),(8,2),(9,1)],"Yeux":[(1,1),(2,2),(3,4),(4,2),(5,3),(6,3),(7,3),(8,5),(9,3),(10,3),(11,2),(12,5),(13,4),(14,2),(15,3),(16,3),(17,4),(18,5),(19,3),(20,2),(21,4),(22,5),(23,3)],"Visage":[(1,1),(2,2)],"Nez":[(1,1),(2,2),(3,2),(4,2),(5,2),(6,1),(7,1)],"Cosmetique":[(1,1),(2,2)],"Cheuveux":[(1,1),(2,3),(3,5),(4,2),(5,4),(6,2),(7,3),(8,1)],"Background":[(1,1),(2,1),(3,2),(4,2),(5,2),(6,3),(7,3),(8,3)],"Genre":[(1,1),(2,2)]}
+		liste_noms_reel = ["Remi","Daniel","Frank","Valentin","Yavan"]
 		for perso in range(40):
+			liste_append_bdd = []
 			if type(liste[9*perso]) != type(str()):
+				self.dico_attribut = {"Cheuveux" : None,"Visage":None,"Yeux":None,"Nez":None,"Bouche":None,"Cosmetique":None,"Background":None,"Genre":None}
 				compile_image_perso(liste[9*perso],[liste[9*perso+1],liste[9*perso+2],liste[9*perso+3],liste[9*perso+4],liste[9*perso+5],liste[9*perso+6],liste[9*perso+7],liste[9*perso+8]])
-
-
+				liste_attribut_simple = [liste[9*perso+1],liste[9*perso+2],liste[9*perso+3],liste[9*perso+4],liste[9*perso+5],liste[9*perso+6],liste[9*perso+7],liste[9*perso+8],liste[9*perso]]
+				somme=0
+				for i in self.liste_attribut:
+					if somme !=8:
+						print(liste_attribut_simple[somme])
+						self.dico_attribut[i]=self.relation[i][liste_attribut_simple[somme]-1][1]
+						somme+=1
+					else:
+						self.dico_attribut[i]=liste_prenom_sexe[liste_attribut_simple[somme]][1]
+				for i in self.dico_attribut.keys():
+					liste_append_bdd.append(self.dico_attribut[i])
+				curseur.execute(self.requete+"("+"1,"+str(liste_append_bdd[0])+","+str(liste_append_bdd[1])+","+str(liste_append_bdd[2])+","+str(liste_append_bdd[3])+","+str(liste_append_bdd[4])+","+str(liste_append_bdd[5])+","+str(liste_append_bdd[6])+","+str(liste_append_bdd[7])+',"'+str(liste_append_bdd[8])+'")')
+			else:
+				liste_noms_reel.remove(liste[9*perso])
+		for i in liste_noms_reel:
+			i = i.replace(".png","")
+			curseur.execute('UPDATE Persos SET choisi = 0 WHERE prenom = "'+str(i)+'"')
+		bdd.commit()
 fichier_nom = open("bdd/liste_des_prenoms.csv")
 cr = csv.reader( fichier_nom,delimiter=";")
 
@@ -537,7 +753,6 @@ def generer_nom(liste_nom,liste_total,liste_noms_reel):
 	if len(liste_total)==40:
 		for i in liste_noms_reel:
 			i = i.replace(".png","")
-			print('UPDATE Persos SET choisi = 0 WHERE prenom = "'+str(i)+'"')
 			curseur.execute('UPDATE Persos SET choisi = 0 WHERE prenom = "'+str(i)+'"')
 			bdd.commit()
 		return liste_total
@@ -548,7 +763,7 @@ def generer_nom(liste_nom,liste_total,liste_noms_reel):
 			perso_choisi = liste_noms_reel[0]
 			liste_noms_reel.pop(0)
 			perso_choisi = perso_choisi.replace(".png","")
-			liste_total.append(perso_choisi)
+			liste_total.append(perso_choisi.title())
 			curseur.execute('UPDATE Persos SET choisi = 1 WHERE prenom = "'+str(perso_choisi)+'"')
 			return generer_nom(liste_nom,liste_total,liste_noms_reel)
 		else:
@@ -562,41 +777,18 @@ liste_personnages = generer_nom(liste_prenom_sexe1,[],perso_reels_liste)
 perso_creer = Gen_perso(liste_personnages)
 
 choix = Background("background",jeu)
-perso = Personnages(liste_personnages,jeu,choix)
+perso = Personnages(liste_personnages,jeu,choix,None)
 attente = Background("IP",jeu)
 user_connection = User_connect(None)
 principal = Background("background3",jeu)
 
-print(curseur.execute("SELECT prenom FROM Persos").fetchall())
-pers = input("> ")
-caract = curseur.execute("SELECT * FROM Persos WHERE prenom ='"+str(pers)+"'").fetchall()
-print(caract)
-dico_attribut_perso_choisi = {"idCheuveux":caract[0][1],"idVisage" : caract[0][2],"idYeux" : caract[0][3],"idNez" : caract[0][4],"idBouche" : caract[0][5],"idCosmetique" : caract[0][6],"idBackground" : caract[0][7],"idGenre":caract[0][8],"prenom" :caract[0][9]}
-for i in dico_attribut_perso_choisi.keys():
-	print(i,dico_attribut_perso_choisi[i])
-while True:
-	table = input("table : ")
-	idt = input("color : ")
-	try:
-		caractere = curseur.execute("SELECT id"+str(table)+" FROM "+str(table)+" WHERE type ='"+str(idt)+"'").fetchall()[0][0]
-		if dico_attribut_perso_choisi["id"+str(table)] == caractere:
-			a = "UPDATE Persos SET choisi = 0 WHERE id"+str(table)+" !="+str(caractere)
-			curseur.execute(a)
-			b = "SELECT prenom FROM Persos WHERE choisi = 1"
-			print(curseur.execute(b).fetchall())
-		else:
-			a = "UPDATE Persos SET choisi = 0 WHERE id"+str(table)+" =="+str(caractere)
-			curseur.execute(a)
-			b = "SELECT prenom FROM Persos WHERE choisi = 1"
-			print(curseur.execute(b).fetchall())
-	finally:
-		None
 
 
-#def ecran(choix,perso,principal):
-	#attente = Background("IP",jeu)
-	#ecran_principal(principal)
+def ecran(choix,perso,principal):
+	attente = Background("IP",jeu)
+	ecran_principal(principal)
 	#ecran_jeu(choix,perso)
+	#jeu_solo(choix)
 
 thread1 = threading.Thread(target=setup_server)
 ecran(choix,perso,principal)
